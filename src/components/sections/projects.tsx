@@ -775,15 +775,13 @@ function CertificateCoverflow() {
   const reduce = useReducedMotion()
   const total = CERTIFICATIONS.length
   const [active, setActive] = useState(0)
-  const [prevActive, setPrevActive] = useState<number | null>(null)
   const regionRef = useRef<HTMLDivElement>(null)
 
   const goTo = useCallback(
     (index: number) => {
-      setPrevActive(active)
       setActive((index + total) % total)
     },
-    [active, total],
+    [total],
   )
 
   const goPrev = useCallback(() => goTo(active - 1), [active, goTo])

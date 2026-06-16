@@ -7,8 +7,7 @@ import { Reveal } from "@/components/ui/reveal"
 import { Section } from "@/components/ui/section"
 import { Button } from "@/components/ui/button"
 
-// TODO: replace with real email before launch
-const EMAIL = "saptansu.neogi@example.com"
+const EMAIL = "saptansu.neogi.sn@gmail.com"
 
 const LINKEDIN_URL = "https://www.linkedin.com/in/saptansu-neogi/"
 const CV_PATH = "/Saptansu-Neogi-CV.pdf"
@@ -186,7 +185,7 @@ function ShineWrapper({ children, reduce, roundedClass = "rounded-full" }: Shine
 }
 
 // ---------------------------------------------------------------------------
-// CopyEmailButton — fallback shown on error state
+// CopyEmailButton — robust clipboard copy, never navigates / opens Mail
 // ---------------------------------------------------------------------------
 
 function CopyEmailButton() {
@@ -202,22 +201,43 @@ function CopyEmailButton() {
     }
   }, [])
 
-  function handleCopy() {
-    navigator.clipboard.writeText(EMAIL).then(() => {
+  async function handleCopy() {
+    const showCopied = () => {
       setCopied(true)
-      if (timerRef.current !== null) {
-        clearTimeout(timerRef.current)
+      if (timerRef.current !== null) clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => { setCopied(false); timerRef.current = null }, 2000)
+    }
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(EMAIL)
+        showCopied()
+        return
       }
-      timerRef.current = setTimeout(() => {
-        setCopied(false)
-        timerRef.current = null
-      }, 2000)
-    })
+      throw new Error("clipboard unavailable")
+    } catch {
+      // Fallback for non-secure contexts / older browsers
+      try {
+        const ta = document.createElement("textarea")
+        ta.value = EMAIL
+        ta.setAttribute("readonly", "")
+        ta.style.position = "fixed"
+        ta.style.opacity = "0"
+        ta.style.pointerEvents = "none"
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand("copy")
+        document.body.removeChild(ta)
+        showCopied()
+      } catch {
+        // give up silently
+      }
+    }
   }
 
   return (
     <ShineWrapper reduce={!!reduce} roundedClass="rounded-full">
       <Button
+        type="button"
         variant="default"
         size="sm"
         onClick={handleCopy}
@@ -232,7 +252,7 @@ function CopyEmailButton() {
         {copied ? (
           <>
             <Check aria-hidden="true" />
-            Copied
+            Copied email
           </>
         ) : (
           <>
@@ -283,7 +303,7 @@ function validate(fields: FormFields): FormErrors {
 }
 
 // ---------------------------------------------------------------------------
-// MessageComposer — the chat-style card form (centred, full-width card)
+// MessageComposer — the chat-style card form
 // ---------------------------------------------------------------------------
 
 function MessageComposer() {
@@ -710,13 +730,13 @@ export function Contact() {
       {/* Aurora glow background — behind all content */}
       <AuroraBackground />
 
-      {/* All content sits above the aurora layer, centred */}
-      <div className="relative z-10 flex flex-col items-center text-center">
+      {/* Two-column grid: text+links left, form right on lg+ */}
+      <div className="relative z-10 grid grid-cols-1 gap-10 lg:grid-cols-2 lg:items-center lg:gap-16">
 
         {/* ------------------------------------------------------------------ */}
-        {/* Eyebrow + heading + lead — centred                                  */}
+        {/* LEFT COLUMN — eyebrow, heading, lead, availability, connect buttons */}
         {/* ------------------------------------------------------------------ */}
-        <Reveal className="w-full">
+        <Reveal className="w-full text-center lg:text-left">
           <p className="text-xs font-medium uppercase tracking-[0.22em] text-sea">
             Contact
           </p>
@@ -728,30 +748,19 @@ export function Contact() {
             Let&apos;s work together
           </h2>
 
-          <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-linen/70 sm:text-lg">
+          <p className="mx-auto mt-4 max-w-md text-base leading-relaxed text-linen/70 sm:text-lg lg:mx-0">
             Have a role, a question, or just want to connect? Send me a note.
           </p>
 
           <p className="mt-2 text-sm font-medium text-sky-mist/90">
             Available from June 2026 for roles across finance, banking, consulting and data.
           </p>
-        </Reveal>
 
-        {/* ------------------------------------------------------------------ */}
-        {/* Message composer card — centred, max-w-xl                           */}
-        {/* ------------------------------------------------------------------ */}
-        <Reveal delay={0.07} className="mt-10 w-full max-w-xl">
-          <MessageComposer />
-        </Reveal>
-
-        {/* ------------------------------------------------------------------ */}
-        {/* Secondary connect links — centred row below card                    */}
-        {/* ------------------------------------------------------------------ */}
-        <Reveal delay={0.14} className="mt-6 w-full">
+          {/* Connect buttons row */}
           <div
             className={cn(
-              "flex flex-col items-center gap-3",
-              "sm:flex-row sm:flex-wrap sm:justify-center",
+              "mt-6 flex flex-wrap items-center gap-3",
+              "justify-center lg:justify-start",
             )}
           >
             {/* Copy email */}
@@ -805,14 +814,24 @@ export function Contact() {
         </Reveal>
 
         {/* ------------------------------------------------------------------ */}
-        {/* Minimal footer line                                                 */}
+        {/* RIGHT COLUMN — MessageComposer chat card                            */}
         {/* ------------------------------------------------------------------ */}
-        <Reveal delay={0.2} className="w-full">
-          <p className="mt-14 text-xs text-linen/35 sm:mt-16">
-            Saptansu Neogi &middot; {new Date().getFullYear()} &middot; Built with React
-          </p>
+        <Reveal delay={0.07} className="w-full">
+          <div className="w-full max-w-xl mx-auto lg:mx-0 lg:max-w-none">
+            <MessageComposer />
+          </div>
         </Reveal>
+
       </div>
+
+      {/* -------------------------------------------------------------------- */}
+      {/* Footer line — full width, below the two-column grid, centred         */}
+      {/* -------------------------------------------------------------------- */}
+      <Reveal className="w-full">
+        <p className="mt-12 text-center text-xs text-linen/35 sm:mt-16">
+          &copy; {new Date().getFullYear()} Saptansu Neogi &middot; Designed and built by hand
+        </p>
+      </Reveal>
     </Section>
   )
 }

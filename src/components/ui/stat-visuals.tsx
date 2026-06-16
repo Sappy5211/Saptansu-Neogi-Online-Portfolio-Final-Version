@@ -7,14 +7,13 @@
  * Animations: motion/react; trigger on in-view (once); reduced-motion aware.
  */
 
-import { useRef } from "react"
+import { useRef, type ComponentType } from "react"
 import {
   motion,
   useReducedMotion,
   useInView,
 } from "motion/react"
 import { TrendingUp, TrendingDown } from "lucide-react"
-import type { LucideIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { EASE } from "@/lib/motion"
@@ -298,7 +297,7 @@ export function StatTrend({ value, label, direction, className }: StatTrendProps
 export interface StatBadgeProps {
   value: string
   label: string
-  icon: LucideIcon
+  icon: ComponentType<{ className?: string }>
   className?: string
 }
 
