@@ -16,7 +16,7 @@ interface Stat {
   label: string
 }
 
-/** "At a glance" strip, distinct from the hero's metric row. */
+/** "At a glance" panel — 4 stats displayed in a 2×2 grid card on the right. */
 const STATS: Stat[] = [
   { value: "4", label: "Professional roles" },
   { value: "6+", label: "Finance specialisations" },
@@ -148,7 +148,7 @@ const pillVariants: Variants = {
   },
 }
 
-/** Stat strip item stagger. */
+/** Stat panel item stagger. */
 const statContainerVariants: Variants = {
   hidden: {},
   show: {
@@ -201,110 +201,165 @@ export function About() {
         aria-labelledby="finance-meets-data-insight-meets-action"
         className="bg-sand"
       >
-        {/* Badge chip, degree eyebrow above heading */}
-        <Reveal>
-          <div className="flex justify-center">
-            <span
-              className={cn(
-                "inline-block rounded-full border border-deep-sea/15 bg-linen",
-                "px-3 py-1 text-xs font-medium text-deep-sea/70",
-              )}
+        {/*
+          TOP ROW — 2 columns on lg+
+          LEFT: badge chip · heading · body paragraphs · fact pills
+          RIGHT: "At a glance" stat card
+        */}
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_auto] lg:gap-16 lg:items-start">
+
+          {/* ── LEFT COLUMN ── */}
+          <div className="min-w-0">
+
+            {/* Badge chip / degree eyebrow */}
+            <Reveal>
+              <span
+                className={cn(
+                  "inline-block rounded-full border border-deep-sea/15 bg-linen",
+                  "px-3 py-1 text-xs font-medium text-deep-sea/70",
+                )}
+              >
+                BSc Economics · First Class trajectory · University of Birmingham
+              </span>
+            </Reveal>
+
+            {/* Heading — left-aligned, no centring className */}
+            <Reveal delay={0.04}>
+              <div className="mt-5">
+                <SectionHeading
+                  eyebrow="About"
+                  title="Finance meets data. Insight meets action."
+                />
+              </div>
+            </Reveal>
+
+            {/* Body paragraphs */}
+            <div className="mt-6 space-y-4">
+              <Reveal delay={0.08}>
+                <p className="text-base leading-relaxed text-deep-sea/80">
+                  <span className="font-semibold text-deep-sea">First Class</span>{" "}
+                  Economics student at the University of Birmingham working across
+                  finance reporting, data analytics, corporate finance, risk
+                  governance and consulting-style research. Experience spans live
+                  finance-division work at Nationwide Building Society, where I
+                  reduced the month-end reporting cycle by{" "}
+                  <span className="font-semibold text-deep-sea">12%</span> and
+                  remediated{" "}
+                  <span className="font-semibold text-deep-sea">400+</span> records
+                  , KPI-led operations at Young Asians in Finance, ESG and strategic
+                  intelligence at Oxbridge Analytics &amp; Consultants, Python-based
+                  trading strategy work and investment-banking simulation projects.
+                </p>
+              </Reveal>
+
+              <Reveal delay={0.14}>
+                <p className="text-base leading-relaxed text-deep-sea/80">
+                  The through-line is analytical problem-solving across data-rich,
+                  commercial environments: improving reporting accuracy, remediating
+                  messy datasets, translating market research into decision briefs,
+                  building valuation models and turning technical analysis into
+                  outputs senior stakeholders can use.
+                </p>
+              </Reveal>
+            </div>
+
+            {/* Fact pills — left-aligned, below body copy */}
+            <motion.div
+              className="mt-6 flex flex-wrap gap-2"
+              variants={reduce ? undefined : pillContainerVariants}
+              initial={reduce ? undefined : "hidden"}
+              whileInView={reduce ? undefined : "show"}
+              viewport={{ once: true, margin: "-60px" }}
             >
-              BSc Economics · First Class trajectory · University of Birmingham
-            </span>
+              {FACTS.map((fact) =>
+                reduce ? (
+                  <span
+                    key={fact}
+                    className={cn(
+                      "inline-block rounded-full border border-deep-sea/15 bg-linen",
+                      "px-3 py-1 text-xs font-medium text-deep-sea/75",
+                    )}
+                  >
+                    {fact}
+                  </span>
+                ) : (
+                  <motion.span
+                    key={fact}
+                    variants={pillVariants}
+                    className={cn(
+                      "inline-block rounded-full border border-deep-sea/15 bg-linen",
+                      "px-3 py-1 text-xs font-medium text-deep-sea/75",
+                    )}
+                  >
+                    {fact}
+                  </motion.span>
+                ),
+              )}
+            </motion.div>
           </div>
-        </Reveal>
 
-        {/* Heading, centred */}
-        <Reveal delay={0.04}>
-          <div className="mt-5 flex flex-col items-center text-center">
-            <SectionHeading
-              eyebrow="About"
-              title="Finance meets data. Insight meets action."
-              className="mx-auto max-w-2xl items-center text-center [&>p]:text-center [&>h2]:text-center"
-            />
-          </div>
-        </Reveal>
-
-        {/* Body copy, centred reading column */}
-        <div className="mt-8 mx-auto max-w-2xl space-y-4 text-center">
-          <Reveal delay={0.08}>
-            <p className="text-base leading-relaxed text-deep-sea/80">
-              <span className="font-semibold text-deep-sea">First Class</span>{" "}
-              Economics student at the University of Birmingham working across
-              finance reporting, data analytics, corporate finance, risk
-              governance and consulting-style research. Experience spans live
-              finance-division work at Nationwide Building Society, where I
-              reduced the month-end reporting cycle by{" "}
-              <span className="font-semibold text-deep-sea">12%</span> and
-              remediated{" "}
-              <span className="font-semibold text-deep-sea">400+</span> records
-             , KPI-led operations at Young Asians in Finance, ESG and strategic
-              intelligence at Oxbridge Analytics &amp; Consultants, Python-based
-              trading strategy work and investment-banking simulation projects.
-            </p>
-          </Reveal>
-
-          <Reveal delay={0.14}>
-            <p className="text-base leading-relaxed text-deep-sea/80">
-              The through-line is analytical problem-solving across data-rich,
-              commercial environments: improving reporting accuracy, remediating
-              messy datasets, translating market research into decision briefs,
-              building valuation models and turning technical analysis into
-              outputs senior stakeholders can use.
-            </p>
+          {/* ── RIGHT COLUMN — "At a glance" stat card ── */}
+          <Reveal delay={0.1}>
+            <motion.div
+              className={cn(
+                "w-full rounded-2xl border border-deep-sea/10 bg-linen p-6 shadow-sm",
+                "lg:w-64 xl:w-72",
+              )}
+              variants={reduce ? undefined : statContainerVariants}
+              initial={reduce ? undefined : "hidden"}
+              whileInView={reduce ? undefined : "show"}
+              viewport={{ once: true, margin: "-60px" }}
+              role="list"
+              aria-label="At a glance"
+            >
+              <p className="mb-5 text-xs font-medium uppercase tracking-[0.22em] text-sea">
+                At a glance
+              </p>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-5 sm:gap-x-10 lg:gap-x-6">
+                {STATS.map((stat) =>
+                  reduce ? (
+                    <div
+                      key={stat.label}
+                      role="listitem"
+                      className="flex flex-col gap-0.5"
+                    >
+                      <span className="text-2xl font-semibold text-deep-sea">
+                        {stat.value}
+                      </span>
+                      <span className="text-xs leading-snug text-slate">
+                        {stat.label}
+                      </span>
+                    </div>
+                  ) : (
+                    <motion.div
+                      key={stat.label}
+                      role="listitem"
+                      variants={statVariants}
+                      className="flex flex-col gap-0.5"
+                    >
+                      <span className="text-2xl font-semibold text-deep-sea">
+                        {stat.value}
+                      </span>
+                      <span className="text-xs leading-snug text-slate">
+                        {stat.label}
+                      </span>
+                    </motion.div>
+                  ),
+                )}
+              </div>
+            </motion.div>
           </Reveal>
         </div>
-
-        {/* "At a glance" stat strip, centred, compact */}
-        <Reveal delay={0.18}>
-          <motion.div
-            className="mx-auto mt-10 flex max-w-2xl flex-wrap justify-center gap-x-10 gap-y-6 sm:gap-x-14"
-            variants={reduce ? undefined : statContainerVariants}
-            initial={reduce ? undefined : "hidden"}
-            whileInView={reduce ? undefined : "show"}
-            viewport={{ once: true, margin: "-60px" }}
-            role="list"
-            aria-label="At a glance"
-          >
-            {STATS.map((stat) =>
-              reduce ? (
-                <div
-                  key={stat.label}
-                  role="listitem"
-                  className="flex flex-col items-center gap-0.5"
-                >
-                  <span className="text-2xl font-semibold text-deep-sea sm:text-3xl">
-                    {stat.value}
-                  </span>
-                  <span className="text-xs text-slate">{stat.label}</span>
-                </div>
-              ) : (
-                <motion.div
-                  key={stat.label}
-                  role="listitem"
-                  variants={statVariants}
-                  className="flex flex-col items-center gap-0.5"
-                >
-                  <span className="text-2xl font-semibold text-deep-sea sm:text-3xl">
-                    {stat.value}
-                  </span>
-                  <span className="text-xs text-slate">{stat.label}</span>
-                </motion.div>
-              ),
-            )}
-          </motion.div>
-        </Reveal>
 
         {/* Divider hairline */}
         <div
           aria-hidden="true"
-          className="mx-auto mt-10 h-px w-16 rounded-full bg-shell"
+          className="mt-10 h-px w-16 rounded-full bg-shell"
         />
 
-        {/* 4 pillars, centred icons and text */}
+        {/* 4 pillars — full-width, 1→2→4 col, left-aligned cards */}
         <motion.div
-          className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4"
+          className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4"
           role="list"
           aria-label="Areas of expertise"
           variants={reduce ? undefined : cardContainerVariants}
@@ -319,8 +374,8 @@ export function About() {
                 key={pillar.title}
                 role="listitem"
                 className={cn(
-                  "flex h-full flex-col items-center gap-3 rounded-2xl border border-deep-sea/10",
-                  "bg-linen p-5 text-center shadow-sm",
+                  "flex h-full flex-col gap-3 rounded-2xl border border-deep-sea/10",
+                  "bg-linen p-5 shadow-sm",
                   "transition-transform duration-300 hover:-translate-y-1 hover:shadow-md",
                 )}
               >
@@ -342,8 +397,8 @@ export function About() {
                 role="listitem"
                 variants={cardVariants}
                 className={cn(
-                  "flex h-full flex-col items-center gap-3 rounded-2xl border border-deep-sea/10",
-                  "bg-linen p-5 text-center shadow-sm",
+                  "flex h-full flex-col gap-3 rounded-2xl border border-deep-sea/10",
+                  "bg-linen p-5 shadow-sm",
                   "transition-transform duration-300 hover:-translate-y-1 hover:shadow-md",
                 )}
               >
@@ -365,10 +420,10 @@ export function About() {
           )}
         </motion.div>
 
-        {/* Tools marquee, slow, subtle, single row */}
+        {/* Tools marquee — full-width, slow, subtle, single row */}
         <Reveal delay={0.1}>
           <div
-            className="mx-auto mt-10 max-w-2xl overflow-hidden"
+            className="mt-8 overflow-hidden"
             aria-label="Tools and skills"
             role="region"
           >
@@ -394,40 +449,6 @@ export function About() {
             </div>
           </div>
         </Reveal>
-
-        {/* Fact pills, centred */}
-        <motion.div
-          className="mt-8 flex flex-wrap justify-center gap-2"
-          variants={reduce ? undefined : pillContainerVariants}
-          initial={reduce ? undefined : "hidden"}
-          whileInView={reduce ? undefined : "show"}
-          viewport={{ once: true, margin: "-60px" }}
-        >
-          {FACTS.map((fact) =>
-            reduce ? (
-              <span
-                key={fact}
-                className={cn(
-                  "inline-block rounded-full border border-deep-sea/15 bg-linen",
-                  "px-3 py-1 text-xs font-medium text-deep-sea/75",
-                )}
-              >
-                {fact}
-              </span>
-            ) : (
-              <motion.span
-                key={fact}
-                variants={pillVariants}
-                className={cn(
-                  "inline-block rounded-full border border-deep-sea/15 bg-linen",
-                  "px-3 py-1 text-xs font-medium text-deep-sea/75",
-                )}
-              >
-                {fact}
-              </motion.span>
-            ),
-          )}
-        </motion.div>
       </Section>
     </>
   )

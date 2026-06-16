@@ -321,7 +321,7 @@ const CASE_STUDIES: CaseStudy[] = [
 ]
 
 // ---------------------------------------------------------------------------
-// Data — Certifications (6 certs from spec; CFA removed)
+// Data — Certifications (4 completed certs; Meta + BMC moved to Now section)
 // Real certificate scans go in public/certs/ and set the `image` field below.
 // ---------------------------------------------------------------------------
 
@@ -407,27 +407,6 @@ const CERTIFICATIONS: CertEntry[] = [
     ],
   },
   {
-    issuer: "Meta",
-    title: "Meta Data Analyst Professional Certificate",
-    blurb: (
-      <>
-        Learned SQL, Python and pandas, the OSEMN workflow, hypothesis testing, regression and data
-        visualisation. Built <span className="font-semibold text-deep-sea">three</span> Tableau
-        dashboards and <span className="font-semibold text-deep-sea">two</span> pandas analyses end
-        to end.
-      </>
-    ),
-    skills: [
-      { label: "SQL" },
-      { label: "Python" },
-      { label: "pandas" },
-      { label: "Tableau" },
-      { label: "Hypothesis Testing" },
-      { label: "Data Visualisation" },
-      { label: "OSEMN" },
-    ],
-  },
-  {
     issuer: "HSBC & J.P. Morgan",
     title: "Investment Banking Virtual Experience",
     blurb: (
@@ -444,24 +423,6 @@ const CERTIFICATIONS: CertEntry[] = [
       { label: "M&A Screening" },
       { label: "Bid Premium Analysis" },
       { label: "Scenario Analysis" },
-    ],
-  },
-  {
-    issuer: "Bloomberg",
-    title: "Bloomberg Market Concepts (BMC)",
-    blurb: (
-      <>
-        Grounding in Bloomberg terminal functions and market structure across economics, currencies,
-        fixed income and equities.
-      </>
-    ),
-    skills: [
-      { label: "Bloomberg Terminal" },
-      { label: "Market Structure" },
-      { label: "Economics" },
-      { label: "Fixed Income" },
-      { label: "Equities" },
-      { label: "FX" },
     ],
   },
 ]
@@ -808,7 +769,7 @@ function getCoverflowStyle(
   }
 
   const BASE: React.CSSProperties = {
-    transition: "transform 420ms cubic-bezier(0.4, 0, 0.2, 1), opacity 420ms ease",
+    transition: "transform 420ms cubic-bezier(0.4, 0, 0.2, 1), opacity 420ms ease, filter 420ms ease",
     position: "absolute",
     top: 0,
     willChange: "transform, opacity",
@@ -820,6 +781,7 @@ function getCoverflowStyle(
       transform: "translateX(-50%) translateZ(0px) rotateY(0deg) scale(1)",
       left: "50%",
       opacity: 1,
+      filter: "none",
       zIndex: 10,
       pointerEvents: "auto",
     }
@@ -827,9 +789,11 @@ function getCoverflowStyle(
   if (position === "prev") {
     return {
       ...BASE,
-      transform: "translateX(-50%) translateX(-68%) translateZ(-80px) rotateY(22deg) scale(0.82)",
+      // Reduced translateX (42% instead of 68%) so frame stays within the stage
+      transform: "translateX(-50%) translateX(-42%) translateZ(-80px) rotateY(18deg) scale(0.78)",
       left: "50%",
-      opacity: 0.55,
+      opacity: 0.38,
+      filter: "blur(1.5px) brightness(0.75)",
       zIndex: 5,
       pointerEvents: "none",
     }
@@ -837,9 +801,11 @@ function getCoverflowStyle(
   // next
   return {
     ...BASE,
-    transform: "translateX(-50%) translateX(68%) translateZ(-80px) rotateY(-22deg) scale(0.82)",
+    // Reduced translateX (42% instead of 68%) so frame stays within the stage
+    transform: "translateX(-50%) translateX(42%) translateZ(-80px) rotateY(-18deg) scale(0.78)",
     left: "50%",
-    opacity: 0.55,
+    opacity: 0.38,
+    filter: "blur(1.5px) brightness(0.75)",
     zIndex: 5,
     pointerEvents: "none",
   }
@@ -900,10 +866,10 @@ function CertificateCoverflow() {
       className="overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-sea focus-visible:ring-offset-4 rounded-2xl"
     >
       {/* 2-col on md+; stacked on mobile */}
-      <div className="flex flex-col gap-10 md:flex-row md:items-center md:gap-12 lg:gap-16">
+      <div className="flex flex-col gap-10 md:flex-row md:items-center md:gap-14 lg:gap-20">
 
         {/* ── LEFT: active cert text ── */}
-        <div className="flex min-w-0 flex-1 flex-col gap-5 md:max-w-sm lg:max-w-md">
+        <div className="flex min-w-0 flex-[0_0_auto] flex-col gap-5 md:w-[42%] lg:w-[38%]">
           {/* Eyebrow — issuer */}
           <AnimatePresence mode="wait">
             <motion.p
@@ -1039,13 +1005,13 @@ function CertificateCoverflow() {
         {/* ── RIGHT: 3D coverflow of certificate frames ── */}
         <div
           aria-hidden="true"
-          className="relative w-full flex-shrink-0 md:w-[52%] lg:w-[48%]"
+          className="relative min-w-0 flex-1"
           style={{ perspective: reduce ? "none" : "900px" }}
         >
-          {/* Height container — drives the aspect of the coverflow stage */}
+          {/* Height container — overflow-hidden clips flanking frames to the stage */}
           <div
-            className="relative w-full"
-            style={{ paddingBottom: "62%" /* approx 1.4/1 aspect height for stage */ }}
+            className="relative w-full overflow-hidden rounded-xl"
+            style={{ paddingBottom: "64%" /* aspect height for stage */ }}
           >
             {CERTIFICATIONS.map((cert, i) => {
               const pos = getPosition(i)
@@ -1056,7 +1022,7 @@ function CertificateCoverflow() {
                   key={cert.title}
                   style={{
                     ...getCoverflowStyle(pos, reduce),
-                    width: "64%",
+                    width: "60%",
                     aspectRatio: "1.4 / 1",
                   }}
                 >
