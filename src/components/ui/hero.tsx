@@ -60,6 +60,35 @@ function useStaticHero() {
   return isStatic
 }
 
+/**
+ * Profile photo with a graceful fallback: if /pfp.jpg is missing or fails to
+ * load, render the "SN" monogram instead so the hero never shows a broken image.
+ */
+function ProfileAvatar() {
+  const [errored, setErrored] = useState(false)
+
+  if (errored) {
+    return (
+      <div className="flex h-56 w-56 items-center justify-center rounded-full border border-linen/20 bg-linen/10 text-5xl font-semibold text-linen/50 backdrop-blur-sm ring-1 ring-linen/10 lg:h-72 lg:w-72 lg:text-6xl">
+        SN
+      </div>
+    )
+  }
+
+  return (
+    <img
+      src="/pfp.jpg"
+      alt="Saptansu Neogi"
+      width={288}
+      height={288}
+      loading="eager"
+      decoding="async"
+      onError={() => setErrored(true)}
+      className="h-56 w-56 rounded-full object-cover object-top shadow-xl shadow-deep-sea/40 ring-2 ring-linen/20 lg:h-72 lg:w-72"
+    />
+  )
+}
+
 export function Hero() {
   const staticHero = useStaticHero()
   const [phase, setPhase] = useState<Phase>(() =>
@@ -202,17 +231,7 @@ export function Hero() {
 
         {/* ── Right column: profile picture ── */}
         <motion.div variants={item} className="mx-auto shrink-0 lg:mx-0">
-          {/*
-            Swap in your real photo:
-              1. Drop pfp.jpg (or .webp / .png) into /public
-              2. Replace the <div> below with:
-                 <img src="/pfp.jpg" alt="Saptansu Neogi"
-                   className="h-56 w-56 rounded-full object-cover object-top
-                              ring-2 ring-linen/20 lg:h-72 lg:w-72" />
-          */}
-          <div className="flex h-56 w-56 items-center justify-center rounded-full border border-linen/20 bg-linen/10 text-5xl font-semibold text-linen/50 backdrop-blur-sm ring-1 ring-linen/10 lg:h-72 lg:w-72 lg:text-6xl">
-            SN
-          </div>
+          <ProfileAvatar />
         </motion.div>
       </motion.div>
     </section>
