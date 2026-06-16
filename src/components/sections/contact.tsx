@@ -568,16 +568,6 @@ function MessageComposer() {
             >
               Message <span className="text-golden-hour" aria-hidden="true">*</span>
             </label>
-            <span
-              className={cn(
-                "text-xs tabular-nums",
-                charOver ? "text-golden-hour" : "text-linen/35",
-              )}
-              aria-live="polite"
-              aria-atomic="true"
-            >
-              {charCount}/{MAX_MESSAGE_LENGTH}
-            </span>
           </div>
           <textarea
             ref={messageRef}
@@ -743,7 +733,7 @@ export function Contact() {
           </p>
 
           <p className="mt-2 text-sm font-medium text-sky-mist/90">
-            Available from June 2026 &middot; Open to analyst and associate roles in finance, investment banking and data.
+            Available from June 2026 for roles across finance, banking, consulting and data.
           </p>
         </Reveal>
 
@@ -765,25 +755,7 @@ export function Contact() {
             )}
           >
             {/* Copy email */}
-            <ShineWrapper reduce={!!reduce} roundedClass="rounded-full">
-              <a
-                href={`mailto:${EMAIL}`}
-                aria-label={`Send email to ${EMAIL}`}
-                className={cn(
-                  "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full",
-                  "border border-linen/60 bg-transparent px-6 text-sm font-medium text-linen",
-                  "transition-[transform,background-color] duration-300 ease-out",
-                  "hover:bg-linen/10 hover:-translate-y-0.5",
-                  "focus-visible:outline-none focus-visible:ring-2",
-                  "focus-visible:ring-sky-mist focus-visible:ring-offset-2",
-                  "focus-visible:ring-offset-deep-sea",
-                  "relative overflow-hidden",
-                )}
-              >
-                <Copy aria-hidden="true" className="size-4 shrink-0" />
-                {EMAIL}
-              </a>
-            </ShineWrapper>
+            <CopyEmailButton />
 
             {/* LinkedIn */}
             <ShineWrapper reduce={!!reduce} roundedClass="rounded-full">

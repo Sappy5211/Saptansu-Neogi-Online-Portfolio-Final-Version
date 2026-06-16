@@ -24,7 +24,7 @@
  *        focus ring ring-sea; decorative icons aria-hidden.
  */
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { AnimatePresence, motion, useReducedMotion } from "motion/react"
 import {
   Building2,
@@ -578,6 +578,18 @@ function ExperienceCard({
 /** The id of the card that is open by default on first load. */
 const DEFAULT_OPEN_ID = "nationwide"
 
+/**
+ * Maps the deep-link element id (the DOM id placed on the card wrapper,
+ * prefixed with "exp-") to the Role id used in the forced/hovered state.
+ * e.g. location.hash === "#exp-nationwide" → role id "nationwide"
+ */
+const HASH_TO_ROLE_ID: Record<string, string> = {
+  "exp-nationwide": "nationwide",
+  "exp-yaf":        "yaf",
+  "exp-oxbridge":   "oxbridge",
+  "exp-fintech":    "fintech",
+}
+
 export function Experience() {
   const reduce = useReducedMotion() ?? false
 
@@ -615,6 +627,39 @@ export function Experience() {
     [forced, hovered],
   )
 
+  // Deep-link support: on mount and on hashchange, if the hash matches one of
+  // the four role card ids (exp-nationwide / exp-yaf / exp-oxbridge / exp-fintech),
+  // force that card open and scroll it into view.  The card stays open until the
+  // user explicitly collapses it with its arrow (normal toggle behaviour).
+  useEffect(() => {
+    function handleHash() {
+      const hash = window.location.hash.replace(/^#/, "")
+      const roleId = HASH_TO_ROLE_ID[hash]
+      if (!roleId) return
+
+      // Force the matched card open (may already be open — that's fine).
+      setForced((prev) => ({ ...prev, [roleId]: true }))
+
+      // Scroll the card wrapper into view after a short tick so the DOM id is
+      // already painted.  Respect prefers-reduced-motion.
+      requestAnimationFrame(() => {
+        const el = document.getElementById(hash)
+        if (!el) return
+        el.scrollIntoView({
+          behavior: reduce ? "auto" : "smooth",
+          block: "start",
+        })
+      })
+    }
+
+    // Run immediately on mount in case the page loaded with a hash.
+    handleHash()
+
+    window.addEventListener("hashchange", handleHash)
+    return () => window.removeEventListener("hashchange", handleHash)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reduce]) // `reduce` is stable after first render; setForced is stable
+
   return (
     <Section
       id="experience"
@@ -639,7 +684,12 @@ export function Experience() {
         {ROLES.map((role) => {
           const open = isOpen(role.id)
           return (
-            <div key={role.id} role="listitem">
+            <div
+              key={role.id}
+              id={`exp-${role.id}`}
+              role="listitem"
+              className="scroll-mt-24"
+            >
               <ExperienceCard
                 role={role}
                 isOpen={open}

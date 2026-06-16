@@ -1,28 +1,24 @@
 /**
- * now.tsx — Currently building section (V5)
+ * now.tsx — Currently building section (V6)
  *
- * Four compact banner items in order:
- *   1. CFA Level 1 candidate (November 2026)          — visual right
- *   2. Bloomberg Market Concepts (BMC)                — visual left
- *   3. Meta Data Analyst Professional Certificate     — visual right
- *   4. Systematic trading strategy (in development)   — visual left
+ * Bento grid layout: CFA (wide) + BMC (narrow) row 1; Meta (wide) + Trading (narrow) row 2.
+ * "Find out more" opens a mini modal popup (fixed overlay, centred card, X/backdrop/Escape close).
+ * No rotating conic-gradient ring. BMC tile overlap fixed. bg-sand section, bg-linen cards.
  *
- * Each banner: visualisation on one side, short 1–2 line description
- * + "Find out more" toggle on the other. Alternating sides (visual
- * right for odd items 1, 3 on lg; visual left for even items 2, 4).
- * Default collapsed. Multiple panels may be open simultaneously.
- *
- * Animations: motion/react AnimatePresence height/opacity expand;
- * instant fallback under prefers-reduced-motion. No new deps.
- * Chevron rotates on open. aria-expanded / aria-controls on each button.
- *
- * Style: bg-sand section, bg-linen rounded-2xl banners, coastal palette.
- * Responsive: 1-col stacked → lg 2-col, no overflow 320–1440px.
+ * A11y: role=dialog aria-modal aria-labelledby; focus trap on open; return focus on close;
+ *       body-scroll lock; reduced-motion = instant; Escape key; backdrop click.
  */
 
-import { useRef, useState, useId } from "react"
-import { ChevronDown, Cpu, GraduationCap, BarChart2, BookOpen } from "lucide-react"
-import { motion, AnimatePresence, useReducedMotion, useInView } from "motion/react"
+import {
+  useRef,
+  useState,
+  useId,
+  useEffect,
+  useCallback,
+  type ReactNode,
+} from "react"
+import { X, Cpu, GraduationCap, BarChart2, BookOpen } from "lucide-react"
+import { motion, useReducedMotion, useInView } from "motion/react"
 
 import { Section, SectionHeading } from "@/components/ui/section"
 import { Reveal } from "@/components/ui/reveal"
@@ -161,7 +157,7 @@ function CfaTopicBarsVisual() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BmcModuleVisual — four Bloomberg module tiles
+// BmcModuleVisual — four Bloomberg module tiles (overlap-free)
 // ─────────────────────────────────────────────────────────────────────────────
 
 function BmcModuleVisual() {
@@ -171,22 +167,19 @@ function BmcModuleVisual() {
   const active = !reduce && inView
 
   const modules = [
-    { label: "Economics",    sublabel: "GDP · inflation\n· monetary policy", color: "var(--color-sea)",       textColor: "var(--color-linen)", accent: true  },
-    { label: "Currencies",  sublabel: "FX rates · cross\n· carry trade",     color: "var(--color-shell)",     textColor: "var(--color-deep-sea)", accent: false },
-    { label: "Fixed Income",sublabel: "Bonds · yield\n· duration",           color: "var(--color-deep-sea)",  textColor: "var(--color-linen)", accent: false },
-    { label: "Equities",    sublabel: "Valuation · EPS\n· relative value",   color: "var(--color-golden-hour)", textColor: "var(--color-deep-sea)", accent: false },
+    { label: "Economics",    sublabel: "GDP · inflation · monetary policy", color: "var(--color-sea)",         textColor: "var(--color-linen)",    accent: true  },
+    { label: "Currencies",   sublabel: "FX rates · carry trade",            color: "var(--color-shell)",       textColor: "var(--color-deep-sea)", accent: false },
+    { label: "Fixed Income", sublabel: "Bonds · yield · duration",          color: "var(--color-deep-sea)",    textColor: "var(--color-linen)",    accent: false },
+    { label: "Equities",     sublabel: "Valuation · EPS · rel. value",      color: "var(--color-golden-hour)", textColor: "var(--color-deep-sea)", accent: false },
   ]
 
-  // Mini candlestick data for decoration (x, open, close, low, high)
-  const candles = [
-    { x: 10,  o: 38, c: 28, l: 40, h: 25 },
-    { x: 22,  o: 30, c: 22, l: 32, h: 20 },
-    { x: 34,  o: 22, c: 30, l: 24, h: 32 },
-    { x: 46,  o: 28, c: 18, l: 30, h: 16 },
-    { x: 58,  o: 20, c: 12, l: 22, h: 10 },
-    { x: 70,  o: 14, c: 22, l: 16, h: 24 },
-    { x: 82,  o: 20, c: 28, l: 22, h: 30 },
-  ]
+  // Each tile: width 148, height 66, gap 8 between cols/rows
+  const tileW = 148
+  const tileH = 66
+  const gapX = 8
+  const gapY = 8
+  const svgW = 2 * tileW + gapX + 8   // 312
+  const svgH = 2 * tileH + gapY + 8   // 148
 
   return (
     <div aria-hidden="true" className="w-full">
@@ -195,88 +188,60 @@ function BmcModuleVisual() {
       </p>
       <svg
         ref={ref}
-        viewBox="0 0 340 148"
+        viewBox={`0 0 ${svgW} ${svgH}`}
         className="w-full"
         preserveAspectRatio="xMidYMid meet"
-        style={{ maxHeight: "180px" }}
+        style={{ maxHeight: "160px" }}
       >
-        {/* Module tiles, 2×2 grid */}
         {modules.map((mod, i) => {
           const col = i % 2
           const row = Math.floor(i / 2)
-          const tileW = 154
-          const tileH = 58
-          const gapX = 12
-          const gapY = 8
-          const x = col * (tileW + gapX) + 10
+          const x = col * (tileW + gapX) + 4
           const y = row * (tileH + gapY) + 4
+          // Label y: centred in first third of tile height
+          const labelY = y + 20
+          const sublabelY = y + 36
           return (
             <motion.g
               key={mod.label}
-              initial={{ opacity: 0, y: 8 }}
-              animate={active ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 6 }}
+              animate={active ? { opacity: 1, y: 0 } : { opacity: 0, y: 6 }}
               transition={
                 reduce
                   ? { duration: 0 }
-                  : { duration: 0.5, ease: EASE, delay: 0.06 + i * 0.1 }
+                  : { duration: 0.45, ease: EASE, delay: 0.06 + i * 0.09 }
               }
             >
               <rect
                 x={x} y={y} width={tileW} height={tileH}
                 rx={7}
                 fill={mod.color}
-                fillOpacity={mod.accent ? 0.92 : 0.18}
+                fillOpacity={mod.accent ? 0.9 : 0.18}
                 stroke={mod.accent ? "transparent" : "var(--color-shell)"}
                 strokeWidth={1}
               />
+              {/* Module label */}
               <text
-                x={x + 12} y={y + 22}
+                x={x + 10} y={labelY}
                 fontSize={10} fontWeight={700}
                 fill={mod.accent ? mod.textColor : "var(--color-deep-sea)"}
                 fontFamily="inherit"
               >
                 {mod.label}
               </text>
-              {mod.sublabel.split("\n").map((line, li) => (
-                <text
-                  key={li}
-                  x={x + 12} y={y + 36 + li * 11}
-                  fontSize={7.5}
-                  fill={mod.accent ? mod.textColor : "var(--color-slate)"}
-                  fillOpacity={mod.accent ? 0.85 : 1}
-                  fontFamily="inherit"
-                >
-                  {line}
-                </text>
-              ))}
+              {/* Sub-label: single line, smaller font, capped to tile width */}
+              <text
+                x={x + 10} y={sublabelY}
+                fontSize={7}
+                fill={mod.accent ? mod.textColor : "var(--color-slate)"}
+                fillOpacity={mod.accent ? 0.82 : 1}
+                fontFamily="inherit"
+              >
+                {mod.sublabel}
+              </text>
             </motion.g>
           )
         })}
-
-        {/* Mini candlestick row at bottom as terminal motif */}
-        <g>
-          <line x1="10" y1="138" x2="330" y2="138" stroke="var(--color-shell)" strokeWidth={0.7} />
-          {candles.map((c, i) => {
-            const isUp = c.c < c.o
-            const clr = isUp ? "var(--color-sea)" : "var(--color-deep-sea)"
-            const bodyTop = Math.min(c.o, c.c)
-            const bodyH = Math.abs(c.o - c.c) || 1.5
-            return (
-              <motion.g
-                key={i}
-                initial={{ opacity: 0 }}
-                animate={active ? { opacity: 0.65 } : { opacity: 0 }}
-                transition={reduce ? { duration: 0 } : { duration: 0.3, delay: 0.4 + i * 0.06 }}
-              >
-                <line x1={c.x + 6} y1={c.h} x2={c.x + 6} y2={c.l} stroke={clr} strokeWidth={0.8} />
-                <rect x={c.x + 2} y={bodyTop} width={8} height={bodyH} rx={1} fill={clr} />
-              </motion.g>
-            )
-          })}
-          <text x="100" y="147" fontSize={7} fill="var(--color-slate)" fontFamily="inherit" textAnchor="middle">
-            terminal functions · market structure · in progress
-          </text>
-        </g>
       </svg>
     </div>
   )
@@ -292,7 +257,6 @@ function MetaDataVisual() {
   const inView = useInView(ref as React.RefObject<Element>, { once: true, margin: "-40px" })
   const active = !reduce && inView
 
-  // Bar data: height values (0–44), labels
   const bars = [
     { h: 16, label: "SQL"     },
     { h: 28, label: "Python"  },
@@ -310,10 +274,8 @@ function MetaDataVisual() {
   const totalW = bars.length * (barW + barGap) - barGap + 20
   const viewW = Math.max(totalW, 340)
 
-  // Sparkline
   const sparkPts = "8,40 28,30 48,34 68,22 88,26 108,14 128,18 148,8 168,12 188,4"
 
-  // OSEMN pipeline steps
   const osemn = ["Obtain", "Scrub", "Explore", "Model", "Interpret"]
 
   return (
@@ -433,7 +395,7 @@ function MetaDataVisual() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TradingPipelineVisual — compact Signal → Back-test → Risk pipeline
+// TradingPipelineVisual — compact Signal -> Back-test -> Risk pipeline
 // ─────────────────────────────────────────────────────────────────────────────
 
 function TradingPipelineVisual() {
@@ -577,7 +539,7 @@ function TradingPipelineVisual() {
         {/* Baseline */}
         <line x1="8" y1="98" x2="372" y2="98" stroke="var(--color-shell)" strokeWidth={0.8} />
         <text x="8"   y="110" fontSize={7} fill="var(--color-slate)" fontFamily="inherit">Strategy concept</text>
-        <text x="372" y="110" textAnchor="end" fontSize={7} fill="var(--color-slate)" fontFamily="inherit">→ in development</text>
+        <text x="372" y="110" textAnchor="end" fontSize={7} fill="var(--color-slate)" fontFamily="inherit">in development</text>
 
         {/* Not deployed badge */}
         <rect x="120" y="120" width="140" height="18" rx={5}
@@ -586,7 +548,7 @@ function TradingPipelineVisual() {
         />
         <text x="190" y="133" textAnchor="middle" fontSize={7}
           fill="var(--color-slate)" fontFamily="inherit" fontStyle="italic">
-          developing · not deployed
+          developing, not deployed
         </text>
       </svg>
     </div>
@@ -594,217 +556,141 @@ function TradingPipelineVisual() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ExpandPanel — animated height/opacity panel
+// Modal — reusable in-file mini modal popup
 // ─────────────────────────────────────────────────────────────────────────────
 
-function ExpandPanel({ id, open, reduce, children }: {
-  id: string
+interface ModalProps {
   open: boolean
+  onClose: () => void
+  titleId: string
+  title: ReactNode
   reduce: boolean | null
-  children: React.ReactNode
-}) {
-  if (reduce) {
-    return open ? (
-      <div id={id} className="border-t border-deep-sea/8 px-6 pb-6 pt-5 sm:px-8 lg:px-10">
-        {children}
-      </div>
-    ) : null
-  }
-
-  return (
-    <AnimatePresence initial={false}>
-      {open && (
-        <motion.div
-          id={id}
-          key="panel"
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: "auto", opacity: 1 }}
-          exit={{ height: 0, opacity: 0 }}
-          transition={{ duration: 0.32, ease: EASE }}
-          style={{ overflow: "hidden" }}
-        >
-          <div className="border-t border-deep-sea/8 px-6 pb-6 pt-5 sm:px-8 lg:px-10">
-            {children}
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  )
+  children: ReactNode
+  triggerRef: React.RefObject<HTMLButtonElement | null>
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// FindOutMoreButton
-// ─────────────────────────────────────────────────────────────────────────────
+function Modal({ open, onClose, titleId, title, reduce, children, triggerRef }: ModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null)
 
-function FindOutMoreButton({
-  open,
-  panelId,
-  onClick,
-}: {
-  open: boolean
-  panelId: string
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      aria-expanded={open}
-      aria-controls={panelId}
-      onClick={onClick}
-      className={cn(
-        "mt-4 flex items-center gap-1.5 rounded-lg border px-3 py-1.5",
-        "text-xs font-medium transition-colors duration-150",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea focus-visible:ring-offset-2",
-        open
-          ? "border-sea/40 bg-sea/8 text-sea"
-          : "border-deep-sea/15 bg-transparent text-deep-sea/70 hover:border-sea/40 hover:text-sea",
-      )}
-    >
-      <span>{open ? "Show less" : "Find out more"}</span>
-      <ChevronDown
-        aria-hidden="true"
-        className={cn(
-          "h-3.5 w-3.5 shrink-0 transition-transform duration-200",
-          open && "rotate-180",
-        )}
-      />
-    </button>
-  )
-}
+  // Body scroll lock
+  useEffect(() => {
+    if (!open) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [open])
 
-// ─────────────────────────────────────────────────────────────────────────────
-// NowBanner — one compact banner item
-// ─────────────────────────────────────────────────────────────────────────────
-
-interface NowBannerProps {
-  /** When true on lg, the visual goes on the left and text goes right. */
-  visualLeft: boolean
-  badge: string
-  statusLabel: string
-  icon: React.ReactNode
-  title: React.ReactNode
-  shortDesc: React.ReactNode
-  visual: React.ReactNode
-  details: React.ReactNode
-  /** Animated border ring on the first banner */
-  ring?: boolean
-  reduce: boolean | null
-}
-
-function NowBanner({
-  visualLeft,
-  badge,
-  statusLabel,
-  icon,
-  title,
-  shortDesc,
-  visual,
-  details,
-  ring = false,
-  reduce,
-}: NowBannerProps) {
-  const [open, setOpen] = useState(false)
-  const panelId = useId()
-
-  const innerCard = (
-    <div className="rounded-2xl bg-linen overflow-hidden">
-      {/* ── Top row: visual + text side by side ── */}
-      <div
-        className={cn(
-          "grid grid-cols-1",
-          "lg:grid-cols-2",
-        )}
-      >
-        {/* Visual pane, order-2 on mobile (below text), left on lg when visualLeft=true */}
-        <div
-          className={cn(
-            "flex items-center justify-center p-5 sm:p-7",
-            "order-2",
-            visualLeft
-              ? "lg:order-1 lg:border-r border-deep-sea/8"
-              : "lg:order-2 lg:border-l border-deep-sea/8",
-            /* Top border on mobile between text (above) and visual (below) */
-            "border-t border-deep-sea/8 lg:border-t-0",
-          )}
-        >
-          {visual}
-        </div>
-
-        {/* Text pane */}
-        <div
-          className={cn(
-            "flex flex-col p-6 sm:p-8 lg:p-10",
-            "order-1",
-            visualLeft ? "lg:order-2" : "lg:order-1",
-          )}
-        >
-          {/* Eyebrow + status */}
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-sea">
-              {badge}
-            </p>
-            <span className="rounded bg-deep-sea/6 px-2 py-0.5 text-[10px] font-medium text-slate">
-              {statusLabel}
-            </span>
-            <PulsingDot reduce={reduce} />
-          </div>
-
-          {/* Title */}
-          <div className="mt-4 flex items-start gap-2.5">
-            <span className="mt-0.5 shrink-0 text-sea" aria-hidden="true">{icon}</span>
-            <h3 className="text-lg font-semibold leading-snug tracking-tight text-deep-sea sm:text-xl">
-              {title}
-            </h3>
-          </div>
-
-          {/* Short description */}
-          <p className="mt-3 text-sm leading-relaxed text-deep-sea/75">
-            {shortDesc}
-          </p>
-
-          {/* Toggle button */}
-          <FindOutMoreButton open={open} panelId={panelId} onClick={() => setOpen((v) => !v)} />
-        </div>
-      </div>
-
-      {/* ── Expandable details panel ── */}
-      <ExpandPanel id={panelId} open={open} reduce={reduce}>
-        {details}
-      </ExpandPanel>
-    </div>
-  )
-
-  if (!ring) {
-    return (
-      <div className="rounded-2xl border border-deep-sea/10 transition-[border-color,box-shadow] duration-300 hover:border-sea/30 hover:shadow-sm overflow-hidden">
-        {innerCard}
-      </div>
+  // Focus first focusable element on open; return focus on close
+  useEffect(() => {
+    if (!open) return
+    const el = dialogRef.current
+    if (!el) return
+    const focusable = el.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
     )
-  }
+    const first = focusable[0]
+    if (first) first.focus()
 
-  // Animated conic-gradient border for the featured item
+    return () => {
+      if (triggerRef.current) triggerRef.current.focus()
+    }
+  }, [open, triggerRef])
+
+  // Escape key close + focus trap
+  useEffect(() => {
+    if (!open) return
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        onClose()
+        return
+      }
+      if (e.key !== "Tab") return
+      const el = dialogRef.current
+      if (!el) return
+      const focusable = Array.from(
+        el.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((n) => !n.hasAttribute("disabled"))
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault()
+          last.focus()
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [open, onClose])
+
+  if (!open) return null
+
   return (
-    <div className="relative rounded-2xl p-[1.5px] overflow-hidden">
-      {!reduce && (
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-[-100%]"
-          style={{
-            background: "conic-gradient(from 0deg, #2b7a8c, #bfe0e8, #d9a441, #2b7a8c)",
-            animation: "nowspin 8s linear infinite",
-          }}
-        />
-      )}
-      {reduce && (
-        <span className="absolute inset-0 rounded-2xl border border-sea/30 pointer-events-none" />
-      )}
-      {innerCard}
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8"
+      style={{
+        backgroundColor: "color-mix(in srgb, var(--color-deep-sea) 60%, transparent)",
+        backdropFilter: "blur(4px)",
+        WebkitBackdropFilter: "blur(4px)",
+        ...(reduce ? {} : { transition: "none" }),
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl bg-linen p-6 sm:p-8 shadow-xl"
+        style={reduce ? {} : { animation: "modalIn 0.18s ease-out both" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close button */}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className={cn(
+            "absolute right-4 top-4 rounded-lg p-1.5 text-slate",
+            "hover:bg-deep-sea/8 hover:text-deep-sea",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea focus-visible:ring-offset-2",
+            "transition-colors duration-150",
+          )}
+        >
+          <X className="h-4 w-4" aria-hidden="true" />
+        </button>
+
+        {/* Title */}
+        <h3
+          id={titleId}
+          className="mb-5 pr-8 text-lg font-semibold leading-snug tracking-tight text-deep-sea sm:text-xl"
+        >
+          {title}
+        </h3>
+
+        {/* Content */}
+        <div>{children}</div>
+      </div>
     </div>
   )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Detail content components — one per banner
+// Detail content components
 // ─────────────────────────────────────────────────────────────────────────────
 
 function CfaDetails() {
@@ -813,26 +699,30 @@ function CfaDetails() {
       <p>
         Studying for the <span className="font-semibold text-deep-sea">CFA Level 1</span> exam across{" "}
         <span className="font-semibold text-deep-sea">10</span> topic areas,{" "}
-        <span className="font-semibold text-deep-sea">180</span> multiple-choice questions across two computer-based sessions.
-        November <span className="font-semibold text-deep-sea">2026</span> sitting target.
+        <span className="font-semibold text-deep-sea">180</span> multiple-choice questions across two
+        computer-based sessions. November <span className="font-semibold text-deep-sea">2026</span> sitting target.
       </p>
       <p>
-        <span className="font-semibold text-deep-sea">Ethics & Professional Standards (15–20%)</span> carries the highest
-        weight, covering the Standards of Professional Conduct and Global Investment Performance Standards that underpin every
-        area of investment practice.
+        <span className="font-semibold text-deep-sea">Ethics and Professional Standards (15–20%)</span> carries
+        the highest weight, covering the Standards of Professional Conduct and Global Investment Performance
+        Standards that underpin every area of investment practice.
       </p>
       <p>
-        <span className="font-semibold text-deep-sea">Financial Statement Analysis (11–14%)</span> teaches how to read and
-        adjust income statements, balance sheets, and cash-flow statements to see through accounting choices to economic
-        reality. <span className="font-semibold text-deep-sea">Equity Investments</span> and{" "}
-        <span className="font-semibold text-deep-sea">Fixed Income</span> (each 11–14%) cover valuation frameworks, DDM,
-        free-cash-flow models, bond pricing, duration, and credit analysis, concepts that connect directly to my LBO and DCF
-        project work.
+        <span className="font-semibold text-deep-sea">Financial Statement Analysis (11–14%)</span> teaches how
+        to read and adjust income statements, balance sheets, and cash-flow statements to see through accounting
+        choices to economic reality.{" "}
+        <span className="font-semibold text-deep-sea">Equity Investments</span> and{" "}
+        <span className="font-semibold text-deep-sea">Fixed Income</span> (each 11–14%) cover valuation
+        frameworks, DDM, free-cash-flow models, bond pricing, duration, and credit analysis, concepts that
+        connect directly to my LBO and DCF project work.
       </p>
       <p>
-        <span className="font-semibold text-deep-sea">Quantitative Methods (6–9%)</span> grounds everything in probability,
-        regression, and time-series concepts that are equally central to systematic trading research.
+        <span className="font-semibold text-deep-sea">Quantitative Methods (6–9%)</span> grounds everything in
+        probability, regression, and time-series concepts that are equally central to systematic trading research.
       </p>
+      <div className="mt-2">
+        <CfaTopicBarsVisual />
+      </div>
     </div>
   )
 }
@@ -881,7 +771,7 @@ function MetaDetails() {
     { label: "Python / pandas", desc: "EDA, data cleaning, transformation and visualisation workflows." },
     { label: "Tableau", desc: "Dashboard design and data storytelling, 3 dashboards built." },
     { label: "Statistics", desc: "Hypothesis testing, regression, and interpreting analytical outputs." },
-    { label: "OSEMN workflow", desc: "Obtain · Scrub · Explore · Model · Interpret, end-to-end analytics." },
+    { label: "OSEMN workflow", desc: "Obtain, Scrub, Explore, Model, Interpret -- end-to-end analytics." },
     { label: "Data governance", desc: "Data validation, quality checks, and reporting best practice." },
   ]
 
@@ -890,13 +780,16 @@ function MetaDetails() {
       <p className="text-sm leading-relaxed text-deep-sea/75">
         Completing the Meta Data Analyst Professional Certificate, building end-to-end data analytics capability:
       </p>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {areas.map((a) => (
           <div key={a.label} className="rounded-xl border border-deep-sea/10 bg-sand/60 p-3">
             <p className="text-xs font-semibold text-deep-sea">{a.label}</p>
             <p className="mt-0.5 text-xs leading-relaxed text-slate">{a.desc}</p>
           </div>
         ))}
+      </div>
+      <div className="mt-2">
+        <MetaDataVisual />
       </div>
     </div>
   )
@@ -916,22 +809,131 @@ function TradingDetails() {
         historical price data.
       </p>
       <p>
-        The second stage is <span className="font-semibold text-deep-sea">walk-forward back-testing</span>:
+        The second stage is{" "}
+        <span className="font-semibold text-deep-sea">walk-forward back-testing</span>:
         dividing data into rolling in-sample windows to fit parameters and out-of-sample windows to
         validate, avoiding look-ahead bias and over-fitting. The third stage applies a{" "}
-        <span className="font-semibold text-deep-sea">risk management</span> lens: position sizing based
-        on signal confidence, gross and net exposure limits, and per-trade loss constraints.
+        <span className="font-semibold text-deep-sea">risk management</span> lens: position sizing
+        based on signal confidence, gross and net exposure limits, and per-trade loss constraints.
       </p>
       <p className="text-xs italic text-slate">
         Independent work in progress. No performance figures, alpha, returns, Sharpe ratio, or drawdown
-        claimed, developing, not deployed.
+        claimed -- developing, not deployed.
       </p>
+      <div className="mt-2">
+        <TradingPipelineVisual />
+      </div>
     </div>
   )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Now section — main export
+// NowCard — one bento card (large or small)
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface NowCardProps {
+  badge: string
+  statusLabel: string
+  icon: ReactNode
+  title: ReactNode
+  titlePlain: string
+  shortDesc: ReactNode
+  visual: ReactNode
+  details: ReactNode
+  reduce: boolean | null
+}
+
+function NowCard({
+  badge,
+  statusLabel,
+  icon,
+  title,
+  titlePlain,
+  shortDesc,
+  visual,
+  details,
+  reduce,
+}: NowCardProps) {
+  const [open, setOpen] = useState(false)
+  const titleId = useId()
+  const triggerRef = useRef<HTMLButtonElement | null>(null)
+
+  const handleOpen = useCallback(() => setOpen(true), [])
+  const handleClose = useCallback(() => setOpen(false), [])
+
+  return (
+    <>
+      <div className="flex h-full flex-col rounded-2xl border border-deep-sea/10 bg-linen overflow-hidden transition-[border-color,box-shadow] duration-300 hover:border-sea/30 hover:shadow-sm">
+        {/* Visual */}
+        <div className="flex items-center justify-center border-b border-deep-sea/8 bg-sand/40 p-4">
+          {visual}
+        </div>
+
+        {/* Text content */}
+        <div className="flex flex-1 flex-col p-5">
+          {/* Eyebrow + status */}
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-sea">
+              {badge}
+            </p>
+            <span className="rounded bg-deep-sea/6 px-2 py-0.5 text-[10px] font-medium text-slate">
+              {statusLabel}
+            </span>
+            <PulsingDot reduce={reduce} />
+          </div>
+
+          {/* Title */}
+          <div className="mt-3 flex items-start gap-2">
+            <span className="mt-0.5 shrink-0 text-sea" aria-hidden="true">{icon}</span>
+            <h3 className="text-base font-semibold leading-snug tracking-tight text-deep-sea sm:text-lg">
+              {title}
+            </h3>
+          </div>
+
+          {/* Short description */}
+          <p className="mt-2 text-sm leading-relaxed text-deep-sea/75">
+            {shortDesc}
+          </p>
+
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Find out more button */}
+          <button
+            ref={triggerRef}
+            type="button"
+            onClick={handleOpen}
+            aria-haspopup="dialog"
+            className={cn(
+              "mt-4 self-start flex items-center gap-1.5 rounded-lg border px-3 py-1.5",
+              "text-xs font-medium transition-colors duration-150",
+              "border-deep-sea/15 bg-transparent text-deep-sea/70",
+              "hover:border-sea/40 hover:text-sea",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea focus-visible:ring-offset-2",
+            )}
+          >
+            <span>Find out more</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Modal */}
+      <Modal
+        open={open}
+        onClose={handleClose}
+        titleId={titleId}
+        title={titlePlain}
+        reduce={reduce}
+        triggerRef={triggerRef}
+      >
+        {details}
+      </Modal>
+    </>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Now section -- main export
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function Now() {
@@ -946,8 +948,9 @@ export function Now() {
             0%   { transform: scale(1); opacity: 0.6; }
             100% { transform: scale(2.8); opacity: 0; }
           }
-          @keyframes nowspin {
-            to { transform: rotate(360deg); }
+          @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.96) translateY(6px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
           }
         }
       `}</style>
@@ -955,7 +958,7 @@ export function Now() {
       <Section id="now" className="bg-sand" aria-labelledby={headingId}>
         <div className="space-y-10">
 
-          {/* ── Section heading ── */}
+          {/* Section heading */}
           <Reveal>
             <SectionHeading
               eyebrow="Currently building"
@@ -964,101 +967,113 @@ export function Now() {
             />
           </Reveal>
 
-          {/* ── Item 1: CFA Level 1, visual RIGHT (odd) ── */}
+          {/*
+            Bento grid:
+              lg: 3 columns
+              Row 1: BMC (1 col) | CFA (2 cols)
+              Row 2: Meta (2 cols) | Trading (1 col)
+          */}
           <Reveal delay={0.04}>
-            <NowBanner
-              ring
-              reduce={reduce}
-              visualLeft={false}
-              badge="CFA Institute · Level 1"
-              statusLabel="currently studying"
-              icon={<GraduationCap className="h-5 w-5" />}
-              title={
-                <>
-                  CFA Level 1 candidate{" "}
-                  <span className="whitespace-nowrap text-golden-hour">(November 2026)</span>
-                </>
-              }
-              shortDesc={
-                <>
-                  Studying for the CFA Level 1 exam across{" "}
-                  <span className="font-semibold text-deep-sea">10</span> topic areas, from ethics
-                  and financial statement analysis to equities, fixed income and derivatives.
-                  <span className="font-semibold text-deep-sea"> 180</span> questions,{" "}
-                  <span className="font-semibold text-deep-sea">November 2026</span> sitting.
-                </>
-              }
-              visual={<CfaTopicBarsVisual />}
-              details={<CfaDetails />}
-            />
-          </Reveal>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 
-          {/* ── Item 2: BMC, visual LEFT (even) ── */}
-          <Reveal delay={0.07}>
-            <NowBanner
-              reduce={reduce}
-              visualLeft={true}
-              badge="Bloomberg · BMC"
-              statusLabel="working through"
-              icon={<BarChart2 className="h-5 w-5" />}
-              title="Bloomberg Market Concepts (BMC)"
-              shortDesc={
-                <>
-                  Working through Bloomberg Market Concepts: terminal functions and market structure
-                  across <span className="font-semibold text-deep-sea">Economics</span>,{" "}
-                  <span className="font-semibold text-deep-sea">Currencies</span>,{" "}
-                  <span className="font-semibold text-deep-sea">Fixed Income</span> and{" "}
-                  <span className="font-semibold text-deep-sea">Equities</span>.
-                </>
-              }
-              visual={<BmcModuleVisual />}
-              details={<BmcDetails />}
-            />
-          </Reveal>
+              {/* Row 1, col 1 -- BMC (small) */}
+              <div className="sm:col-span-1 lg:col-span-1">
+                <NowCard
+                  reduce={reduce}
+                  badge="Bloomberg · BMC"
+                  statusLabel="working through"
+                  icon={<BarChart2 className="h-5 w-5" />}
+                  title="Bloomberg Market Concepts"
+                  titlePlain="Bloomberg Market Concepts (BMC)"
+                  shortDesc={
+                    <>
+                      Working through Bloomberg Market Concepts: terminal functions across{" "}
+                      <span className="font-semibold text-deep-sea">Economics</span>,{" "}
+                      <span className="font-semibold text-deep-sea">Currencies</span>,{" "}
+                      <span className="font-semibold text-deep-sea">Fixed Income</span> and{" "}
+                      <span className="font-semibold text-deep-sea">Equities</span>.
+                    </>
+                  }
+                  visual={<BmcModuleVisual />}
+                  details={<BmcDetails />}
+                />
+              </div>
 
-          {/* ── Item 3: Meta, visual RIGHT (odd) ── */}
-          <Reveal delay={0.10}>
-            <NowBanner
-              reduce={reduce}
-              visualLeft={false}
-              badge="Meta · Coursera"
-              statusLabel="completing"
-              icon={<BookOpen className="h-5 w-5" />}
-              title="Meta Data Analyst Professional Certificate"
-              shortDesc={
-                <>
-                  Completing the Meta Data Analyst certificate:{" "}
-                  <span className="font-semibold text-deep-sea">SQL</span>,{" "}
-                  <span className="font-semibold text-deep-sea">Python</span>,{" "}
-                  <span className="font-semibold text-deep-sea">pandas</span>,{" "}
-                  <span className="font-semibold text-deep-sea">Tableau</span> and the{" "}
-                  <span className="font-semibold text-deep-sea">OSEMN</span> analytics workflow.
-                </>
-              }
-              visual={<MetaDataVisual />}
-              details={<MetaDetails />}
-            />
-          </Reveal>
+              {/* Row 1, cols 2–3 -- CFA (large/wide) */}
+              <div className="sm:col-span-1 lg:col-span-2">
+                <NowCard
+                  reduce={reduce}
+                  badge="CFA Institute · Level 1"
+                  statusLabel="currently studying"
+                  icon={<GraduationCap className="h-5 w-5" />}
+                  title={
+                    <>
+                      CFA Level 1 candidate{" "}
+                      <span className="whitespace-nowrap text-golden-hour">(November 2026)</span>
+                    </>
+                  }
+                  titlePlain="CFA Level 1 candidate (November 2026)"
+                  shortDesc={
+                    <>
+                      Studying across{" "}
+                      <span className="font-semibold text-deep-sea">10</span> topic areas, from
+                      ethics and financial statement analysis to equities, fixed income and
+                      derivatives.{" "}
+                      <span className="font-semibold text-deep-sea">180</span> questions,{" "}
+                      <span className="font-semibold text-deep-sea">November 2026</span> sitting.
+                    </>
+                  }
+                  visual={<CfaTopicBarsVisual />}
+                  details={<CfaDetails />}
+                />
+              </div>
 
-          {/* ── Item 4: Trading, visual LEFT (even) ── */}
-          <Reveal delay={0.13}>
-            <NowBanner
-              reduce={reduce}
-              visualLeft={true}
-              badge="Systematic strategy · Python"
-              statusLabel="in development"
-              icon={<Cpu className="h-5 w-5" />}
-              title="Systematic trading strategy"
-              shortDesc={
-                <>
-                  Building a Python systematic trading strategy from signal research to
-                  back-testing and risk management.{" "}
-                  <span className="italic text-slate/80">Developing, not deployed.</span>
-                </>
-              }
-              visual={<TradingPipelineVisual />}
-              details={<TradingDetails />}
-            />
+              {/* Row 2, cols 1–2 -- Meta (large/wide) */}
+              <div className="sm:col-span-2 lg:col-span-2">
+                <NowCard
+                  reduce={reduce}
+                  badge="Meta · Coursera"
+                  statusLabel="completing"
+                  icon={<BookOpen className="h-5 w-5" />}
+                  title="Meta Data Analyst Professional Certificate"
+                  titlePlain="Meta Data Analyst Professional Certificate"
+                  shortDesc={
+                    <>
+                      Completing the Meta Data Analyst certificate:{" "}
+                      <span className="font-semibold text-deep-sea">SQL</span>,{" "}
+                      <span className="font-semibold text-deep-sea">Python</span>,{" "}
+                      <span className="font-semibold text-deep-sea">pandas</span>,{" "}
+                      <span className="font-semibold text-deep-sea">Tableau</span> and the{" "}
+                      <span className="font-semibold text-deep-sea">OSEMN</span> analytics workflow.
+                    </>
+                  }
+                  visual={<MetaDataVisual />}
+                  details={<MetaDetails />}
+                />
+              </div>
+
+              {/* Row 2, col 3 -- Trading (small) */}
+              <div className="sm:col-span-2 lg:col-span-1">
+                <NowCard
+                  reduce={reduce}
+                  badge="Systematic strategy · Python"
+                  statusLabel="in development"
+                  icon={<Cpu className="h-5 w-5" />}
+                  title="Systematic trading strategy"
+                  titlePlain="Systematic trading strategy"
+                  shortDesc={
+                    <>
+                      Building a Python systematic strategy from signal research to back-testing and
+                      risk management.{" "}
+                      <span className="italic text-slate/80">Developing, not deployed.</span>
+                    </>
+                  }
+                  visual={<TradingPipelineVisual />}
+                  details={<TradingDetails />}
+                />
+              </div>
+
+            </div>
           </Reveal>
 
         </div>

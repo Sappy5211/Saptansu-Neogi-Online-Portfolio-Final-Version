@@ -2,25 +2,28 @@
  * projects.tsx — Projects & Certifications section
  *
  * Layout:
- *   - Case-study container: featured (2-col lg) + 2-up grid, rows separated by deep-sea/10 border.
- *   - Each case study: eyebrow label · title + subtitle · 1–2 sentence context ·
- *     compact metric row (count-up) · "Read case study" placeholder link (MoveRight nudge).
- *   - NO pointer-tracking 3D tilt; cards are stable with a gentle ≤2px lift on hover.
- *   - Certifications: CertificateCoverflow — text left, 3D coverflow right.
- *     Real certificate scans go in public/certs/ and set the `image` field on each cert entry.
+ *   - Case-study container: 3 ProjectCards in a responsive grid (sm:2 / lg:3).
+ *   - ProjectCard: smooth 3D tilt on hover (useMotionValue + useSpring + useTransform,
+ *     rotateX/Y ±10 deg, transformStyle preserve-3d, inner content translateZ).
+ *     Coastal gradient bg per card (from-deep-sea to-sea) + dark scrim + SVG metric visual.
+ *     Linen/white text, metric chip row, circular ArrowUpRight link, glass button.
+ *     Reduced-motion: static card, no tilt.
+ *   - Certifications: CertificateCoverflow kept exactly.
  *   - Reduced-motion aware; all animations via motion/react; no horizontal overflow.
  */
 
 import {
-  MoveRight,
   ArrowLeft,
   ArrowRight,
+  ArrowUpRight,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
-import { useRef, useEffect, useCallback, useState, useMemo } from "react"
+import { useRef, useEffect, useCallback, useState } from "react"
 import {
   motion,
   useMotionValue,
+  useSpring,
+  useTransform,
   useReducedMotion,
   useInView,
   animate,
@@ -48,16 +51,17 @@ interface CaseStudy {
   subtitle: string
   context: string
   metrics: CaseMetric[]
-  featured?: boolean
   /**
-   * Compact SVG visual slot for the featured card.
+   * Compact SVG visual slot layered subtly into the card background area.
    * A function component so it can reference tokens.
    */
   Visual?: () => React.ReactElement
+  /** Tailwind gradient classes for the card background */
+  gradient: string
 }
 
 // ---------------------------------------------------------------------------
-// Inline tactical SVG visuals (on-brand, no stock photos)
+// Inline SVG visuals (on-brand, no stock photos) — rendered on the gradient bg
 // ---------------------------------------------------------------------------
 
 /** VoltaGrid: a simple bar chart showing 3 demand scenario return bars */
@@ -67,78 +71,61 @@ function VoltaGridVisual() {
   const inView = useInView(ref as React.RefObject<Element>, { once: true, margin: "-60px" })
 
   const bars = [
-    { x: 14, h: 68, label: "Base", value: "22%", fill: "var(--color-sea)" },
-    { x: 54, h: 90, label: "Up", value: "28%", fill: "var(--color-golden-hour)" },
-    { x: 94, h: 46, label: "Down", value: "14%", fill: "var(--color-sea)" },
+    { x: 14, h: 68, label: "Base", value: "22%", fill: "rgba(255,255,255,0.55)" },
+    { x: 54, h: 90, label: "Up", value: "28%", fill: "rgba(217,164,65,0.65)" },
+    { x: 94, h: 46, label: "Down", value: "14%", fill: "rgba(255,255,255,0.35)" },
   ]
 
   return (
-    <div className="flex flex-col gap-2">
-      <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate">
-        IRR · 3 scenarios (modelled)
-      </p>
-      <svg
-        ref={ref}
-        viewBox="0 0 144 116"
-        aria-hidden="true"
-        className="w-full max-w-[9rem] lg:max-w-[11rem]"
-        preserveAspectRatio="xMidYMid meet"
-      >
-        {/* Baseline */}
-        <line x1="4" y1="106" x2="140" y2="106" stroke="var(--color-shell)" strokeWidth={1} />
-        {bars.map((bar) => (
-          <g key={bar.label}>
-            <motion.rect
-              x={bar.x}
-              y={106 - bar.h}
-              width={28}
-              height={bar.h}
-              rx={4}
-              fill={bar.fill}
-              fillOpacity={0.85}
-              initial={{ scaleY: 0, originY: 1 }}
-              animate={
-                reduce
-                  ? { scaleY: 1 }
-                  : inView
-                  ? { scaleY: 1 }
-                  : { scaleY: 0 }
-              }
-              style={{ transformOrigin: `${bar.x + 14}px 106px` }}
-              transition={
-                reduce
-                  ? { duration: 0 }
-                  : { duration: 0.7, ease: EASE, delay: 0.15 }
-              }
-            />
-            <text
-              x={bar.x + 14}
-              y={106 - bar.h - 5}
-              textAnchor="middle"
-              fontSize={9}
-              fill="var(--color-deep-sea)"
-              fontFamily="inherit"
-            >
-              {bar.value}
-            </text>
-            <text
-              x={bar.x + 14}
-              y={115}
-              textAnchor="middle"
-              fontSize={8}
-              fill="var(--color-slate)"
-              fontFamily="inherit"
-            >
-              {bar.label}
-            </text>
-          </g>
-        ))}
-      </svg>
-    </div>
+    <svg
+      ref={ref}
+      viewBox="0 0 144 116"
+      aria-hidden="true"
+      className="w-full max-w-[8rem]"
+      preserveAspectRatio="xMidYMid meet"
+    >
+      <line x1="4" y1="106" x2="140" y2="106" stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
+      {bars.map((bar) => (
+        <g key={bar.label}>
+          <motion.rect
+            x={bar.x}
+            y={106 - bar.h}
+            width={28}
+            height={bar.h}
+            rx={4}
+            fill={bar.fill}
+            initial={{ scaleY: 0 }}
+            animate={reduce || inView ? { scaleY: 1 } : { scaleY: 0 }}
+            style={{ transformOrigin: `${bar.x + 14}px 106px` }}
+            transition={reduce ? { duration: 0 } : { duration: 0.7, ease: EASE, delay: 0.15 }}
+          />
+          <text
+            x={bar.x + 14}
+            y={106 - bar.h - 5}
+            textAnchor="middle"
+            fontSize={9}
+            fill="rgba(255,255,255,0.75)"
+            fontFamily="inherit"
+          >
+            {bar.value}
+          </text>
+          <text
+            x={bar.x + 14}
+            y={115}
+            textAnchor="middle"
+            fontSize={8}
+            fill="rgba(255,255,255,0.45)"
+            fontFamily="inherit"
+          >
+            {bar.label}
+          </text>
+        </g>
+      ))}
+    </svg>
   )
 }
 
-/** AquaServe: leverage + covenant headroom mini gauge */
+/** AquaServe: leverage vs covenant headroom gauge */
 function AquaServeVisual() {
   const ref = useRef<SVGSVGElement>(null)
   const reduce = useReducedMotion()
@@ -150,73 +137,52 @@ function AquaServeVisual() {
   const barH = 16
   const totalW = 130
   const startX = 7
-
   const fillW = totalW * 0.65
 
   return (
-    <div className="flex flex-col gap-2">
-      <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate">
-        Leverage vs covenant (8.0× EBITDA)
-      </p>
-      <svg
-        ref={ref}
-        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        aria-hidden="true"
-        className="w-full max-w-[9rem] lg:max-w-[11rem]"
-        preserveAspectRatio="xMidYMid meet"
+    <svg
+      ref={ref}
+      viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+      aria-hidden="true"
+      className="w-full max-w-[8rem]"
+      preserveAspectRatio="xMidYMid meet"
+    >
+      <rect x={startX} y={barY} width={totalW} height={barH} rx={5} fill="rgba(255,255,255,0.12)" />
+      <motion.rect
+        x={startX}
+        y={barY}
+        width={fillW}
+        height={barH}
+        rx={5}
+        fill="rgba(255,255,255,0.45)"
+        initial={{ scaleX: 0 }}
+        animate={reduce || inView ? { scaleX: 1 } : { scaleX: 0 }}
+        style={{ transformOrigin: `${startX}px ${barY + barH / 2}px` }}
+        transition={reduce ? { duration: 0 } : { duration: 0.8, ease: EASE, delay: 0.1 }}
+      />
+      <line
+        x1={startX + totalW * 0.85}
+        y1={barY - 4}
+        x2={startX + totalW * 0.85}
+        y2={barY + barH + 4}
+        stroke="rgba(217,164,65,0.8)"
+        strokeWidth={1.5}
+        strokeDasharray="3 2"
+      />
+      <text x={startX} y={barY + barH + 13} fontSize={8} fill="rgba(255,255,255,0.45)" fontFamily="inherit">
+        Debt
+      </text>
+      <text
+        x={startX + totalW * 0.85}
+        y={barY - 6}
+        textAnchor="middle"
+        fontSize={8}
+        fill="rgba(217,164,65,0.8)"
+        fontFamily="inherit"
       >
-        {/* Track */}
-        <rect x={startX} y={barY} width={totalW} height={barH} rx={5} fill="var(--color-shell)" />
-        {/* Fill bar */}
-        <motion.rect
-          x={startX}
-          y={barY}
-          width={fillW}
-          height={barH}
-          rx={5}
-          fill="var(--color-sea)"
-          fillOpacity={0.85}
-          initial={{ scaleX: 0 }}
-          animate={
-            reduce
-              ? { scaleX: 1 }
-              : inView
-              ? { scaleX: 1 }
-              : { scaleX: 0 }
-          }
-          style={{ transformOrigin: `${startX}px ${barY + barH / 2}px` }}
-          transition={
-            reduce
-              ? { duration: 0 }
-              : { duration: 0.8, ease: EASE, delay: 0.1 }
-          }
-        />
-        {/* Covenant line */}
-        <line
-          x1={startX + totalW * 0.85}
-          y1={barY - 4}
-          x2={startX + totalW * 0.85}
-          y2={barY + barH + 4}
-          stroke="var(--color-golden-hour)"
-          strokeWidth={1.5}
-          strokeDasharray="3 2"
-        />
-        {/* Labels */}
-        <text x={startX} y={barY + barH + 13} fontSize={8} fill="var(--color-slate)" fontFamily="inherit">
-          Debt
-        </text>
-        <text
-          x={startX + totalW * 0.85}
-          y={barY - 6}
-          textAnchor="middle"
-          fontSize={8}
-          fill="var(--color-golden-hour)"
-          fontFamily="inherit"
-        >
-          Covenant
-        </text>
-      </svg>
-    </div>
+        Covenant
+      </text>
+    </svg>
   )
 }
 
@@ -227,51 +193,38 @@ function DashboardVisual() {
   const inView = useInView(ref as React.RefObject<Element>, { once: true, margin: "-60px" })
 
   const sparklines = [
-    { pts: "2,34 18,28 34,30 50,20 66,17 82,10", col: "var(--color-sea)" },
-    { pts: "2,38 18,32 34,22 50,26 66,15 82,12", col: "var(--color-golden-hour)" },
-    { pts: "2,40 18,30 34,36 50,22 66,20 82,8", col: "var(--color-slate)" },
+    { pts: "2,34 18,28 34,30 50,20 66,17 82,10", col: "rgba(255,255,255,0.6)" },
+    { pts: "2,38 18,32 34,22 50,26 66,15 82,12", col: "rgba(217,164,65,0.65)" },
+    { pts: "2,40 18,30 34,36 50,22 66,20 82,8",  col: "rgba(255,255,255,0.35)" },
   ]
 
   return (
-    <div className="flex flex-col gap-2">
-      <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate">
-        3 Tableau dashboards · 3 business areas
-      </p>
-      <svg
-        ref={ref}
-        viewBox="0 0 88 52"
-        aria-hidden="true"
-        className="w-full max-w-[9rem] lg:max-w-[11rem]"
-        preserveAspectRatio="xMidYMid meet"
+    <svg
+      ref={ref}
+      viewBox="0 0 88 52"
+      aria-hidden="true"
+      className="w-full max-w-[8rem]"
+      preserveAspectRatio="xMidYMid meet"
+    >
+      <motion.g
+        initial={{ opacity: 0 }}
+        animate={reduce || inView ? { opacity: 1 } : { opacity: 0 }}
+        transition={reduce ? { duration: 0 } : { duration: 0.6, ease: EASE, delay: 0.1 }}
       >
-        <motion.g
-          initial={{ opacity: 0 }}
-          animate={
-            reduce
-              ? { opacity: 1 }
-              : inView
-              ? { opacity: 1 }
-              : { opacity: 0 }
-          }
-          transition={reduce ? { duration: 0 } : { duration: 0.6, ease: EASE, delay: 0.1 }}
-        >
-          {sparklines.map((s, i) => (
-            <polyline
-              key={i}
-              points={s.pts}
-              fill="none"
-              stroke={s.col}
-              strokeWidth={2.5}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              opacity={i === 0 ? 1 : 0.6}
-            />
-          ))}
-        </motion.g>
-        {/* Baseline */}
-        <line x1="2" y1="46" x2="86" y2="46" stroke="var(--color-shell)" strokeWidth={0.8} />
-      </svg>
-    </div>
+        {sparklines.map((s, i) => (
+          <polyline
+            key={i}
+            points={s.pts}
+            fill="none"
+            stroke={s.col}
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        ))}
+      </motion.g>
+      <line x1="2" y1="46" x2="86" y2="46" stroke="rgba(255,255,255,0.12)" strokeWidth={0.8} />
+    </svg>
   )
 }
 
@@ -279,50 +232,46 @@ const CASE_STUDIES: CaseStudy[] = [
   {
     label: "3-STATEMENT LBO · IC MEMO",
     title: "VoltaGrid Energy",
-    subtitle: "A self-directed leveraged buyout build and investment memo.",
-    context:
-      "Built a five-year, three-statement LBO for a hypothetical £45m EV energy deal, then wrote a five-part investment committee memo covering thesis, market context, execution risks, value creation and exit.",
+    subtitle: "Leveraged buyout model and investment committee memo",
+    context: "Five-year, three-statement LBO modelled for a £45 m EV energy deal with a five-part IC memo.",
     metrics: [
       { value: "£45m", label: "Enterprise value" },
       { value: "2.4×", label: "MOIC (modelled)" },
       { value: "22%", label: "IRR (modelled)" },
-      { value: "3", label: "Demand scenarios" },
     ],
-    featured: true,
+    gradient: "from-[#14323b] to-[#1e5c6b]",
     Visual: VoltaGridVisual,
   },
   {
     label: "LBO MODEL · STRESS TESTING",
     title: "AquaServe UK",
-    subtitle: "An entry-to-exit buyout model with downside testing.",
-    context:
-      "Modelled a £43.3m water-sector buyout at 8.0× EBITDA, stress-testing leverage, covenant headroom and cash-flow coverage and mapping return sensitivity across exit scenarios.",
+    subtitle: "Entry-to-exit buyout model with downside testing",
+    context: "Modelled a £43.3 m water-sector buyout at 8.0× EBITDA, stress-testing leverage and covenant headroom.",
     metrics: [
       { value: "£43.3m", label: "Deal size" },
       { value: "8.0×", label: "EBITDA entry" },
       { value: "2.1×", label: "MOIC (modelled)" },
-      { value: "20%+", label: "IRR (base case)" },
     ],
+    gradient: "from-[#14323b] to-[#2b7a8c]",
     Visual: AquaServeVisual,
   },
   {
     label: "ANALYTICS · DASHBOARDS",
-    title: "Multi-source KPI dashboards + Python EDA",
-    subtitle: "Multi-source KPI analytics, end to end.",
-    context:
-      "Built three Tableau dashboards tracking KPIs across three business areas and ran two Python (pandas) analyses, cleaning raw data through to a clear recommendation.",
+    title: "Multi-source KPI Dashboards",
+    subtitle: "Multi-source KPI analytics with Python EDA",
+    context: "Three Tableau dashboards across three business areas plus two Python pandas analyses end to end.",
     metrics: [
-      { value: "3", label: "Tableau dashboards" },
+      { value: "3", label: "Dashboards" },
       { value: "2", label: "Python analyses" },
       { value: "3", label: "Business areas" },
     ],
+    gradient: "from-[#1e5c6b] to-[#14323b]",
     Visual: DashboardVisual,
   },
 ]
 
 // ---------------------------------------------------------------------------
-// Data — Certifications (4 completed certs; Meta + BMC moved to Now section)
-// Real certificate scans go in public/certs/ and set the `image` field below.
+// Data — Certifications (4 completed certs)
 // ---------------------------------------------------------------------------
 
 interface CertSkill {
@@ -330,19 +279,10 @@ interface CertSkill {
 }
 
 interface CertEntry {
-  /** Short issuer name shown as eyebrow */
   issuer: string
-  /** Full certification title */
   title: string
-  /** Learning-focused blurb (may contain inline React nodes for highlighted figures) */
   blurb: React.ReactNode
-  /** Core skills chips */
   skills: CertSkill[]
-  /**
-   * Optional path to a real certificate scan in public/certs/.
-   * Example: "/certs/nyif-risk-management.jpg"
-   * When provided, the frame renders <img object-contain> instead of the styled placeholder.
-   */
   image?: string
 }
 
@@ -394,7 +334,7 @@ const CERTIFICATIONS: CertEntry[] = [
       <>
         Excel-based decision modelling. Built{" "}
         <span className="font-semibold text-deep-sea">six</span> spreadsheet models on a{" "}
-        <span className="font-semibold text-deep-sea">£1.2m</span> portfolio, applying single and
+        <span className="font-semibold text-deep-sea">£1.2 m</span> portfolio, applying single and
         multiple regression, correlation and sensitivity testing to turn outputs into recommendations.
       </>
     ),
@@ -413,7 +353,7 @@ const CERTIFICATIONS: CertEntry[] = [
       <>
         Virtual Experience Programmes. Screened{" "}
         <span className="font-semibold text-deep-sea">five</span> M&A targets, built a DCF for an{" "}
-        <span className="font-semibold text-deep-sea">£803m</span> beverage-sector deal and
+        <span className="font-semibold text-deep-sea">£803 m</span> beverage-sector deal and
         stress-tested a{" "}
         <span className="font-semibold text-deep-sea">110.8%</span> bid premium across scenarios.
       </>
@@ -428,7 +368,7 @@ const CERTIFICATIONS: CertEntry[] = [
 ]
 
 // ---------------------------------------------------------------------------
-// parseMetricValue — splits "£45m" → { prefix, number, suffix, decimalPlaces }
+// parseMetricValue — splits "£45m" => { prefix, number, suffix, decimalPlaces }
 // ---------------------------------------------------------------------------
 
 interface ParsedMetric {
@@ -450,7 +390,7 @@ function parseMetricValue(value: string): ParsedMetric | null {
 }
 
 // ---------------------------------------------------------------------------
-// CountUpValue — animates 0 → target on viewport entry
+// CountUpValue — animates 0 -> target on viewport entry
 // ---------------------------------------------------------------------------
 
 function CountUpValue({ value }: { value: string }) {
@@ -495,187 +435,212 @@ function CountUpValue({ value }: { value: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// Metric row (count-up chips) — shared by featured + grid cards
+// ProjectCard — 3D tilt card with coastal gradient bg + overlay content
+// Adapted from InteractiveTravelCard pattern.
+// Reduced-motion: renders as a plain static card with no tilt.
 // ---------------------------------------------------------------------------
 
-function MetricRow({ metrics }: { metrics: CaseMetric[] }) {
-  return (
-    <dl className="flex flex-wrap gap-x-5 gap-y-2">
-      {metrics.map((m, i) => (
-        <div key={m.label} className="min-w-0">
-          <dt className="text-[10px] uppercase tracking-[0.15em] text-slate">{m.label}</dt>
-          <dd
-            className={cn(
-              "mt-0.5 text-base font-semibold tabular-nums",
-              i === 0 ? "text-golden-hour" : "text-deep-sea",
-            )}
-          >
-            <CountUpValue value={m.value} />
-          </dd>
-        </div>
-      ))}
-    </dl>
-  )
-}
+const TILT_MAX = 10 // degrees
 
-// ---------------------------------------------------------------------------
-// ReadCaseStudyLink — placeholder affordance with MoveRight nudge
-// ---------------------------------------------------------------------------
+function ProjectCard({ cs, delay = 0 }: { cs: CaseStudy; delay?: number }) {
+  const reduce = useReducedMotion()
+  const cardRef = useRef<HTMLDivElement>(null)
 
-function ReadCaseStudyLink({ title }: { title: string }) {
-  return (
-    <a
-      href="#"
-      aria-label={`Read case study: ${title} (coming soon)`}
-      aria-disabled="true"
-      onClick={(e) => e.preventDefault()}
-      className={cn(
-        "group inline-flex items-center gap-1.5 text-sm font-medium text-sea",
-        "transition-colors duration-200 hover:text-sea-deep",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea focus-visible:ring-offset-2",
-        "rounded",
-      )}
-    >
-      Read case study
-      <MoveRight
-        aria-hidden="true"
-        className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1"
-      />
-      <span className="sr-only">(coming soon)</span>
-    </a>
-  )
-}
+  // Raw pointer values
+  const rawX = useMotionValue(0)
+  const rawY = useMotionValue(0)
 
-// ---------------------------------------------------------------------------
-// FeaturedCaseStudy — larger 2-col layout on lg; stable card (no pointer tilt)
-// ---------------------------------------------------------------------------
+  // Smoothed springs — damp ~15, stiffness ~150
+  const springConfig = { damping: 15, stiffness: 150 }
+  const springX = useSpring(rawX, springConfig)
+  const springY = useSpring(rawY, springConfig)
 
-function FeaturedCaseStudy({ cs }: { cs: CaseStudy }) {
-  return (
-    <Reveal delay={0.04}>
+  // Map spring values to rotateX / rotateY
+  const rotateX = useTransform(springY, [-0.5, 0.5], [TILT_MAX, -TILT_MAX])
+  const rotateY = useTransform(springX, [-0.5, 0.5], [-TILT_MAX, TILT_MAX])
+
+  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    if (reduce) return
+    const rect = cardRef.current?.getBoundingClientRect()
+    if (!rect) return
+    rawX.set((e.clientX - rect.left) / rect.width - 0.5)
+    rawY.set((e.clientY - rect.top) / rect.height - 0.5)
+  }
+
+  function handleMouseLeave() {
+    rawX.set(0)
+    rawY.set(0)
+  }
+
+  // Static card for reduced motion
+  if (reduce) {
+    return (
       <div
         className={cn(
-          "rounded-2xl border border-deep-sea/10 bg-linen p-6 shadow-sm",
-          "transition-shadow duration-300 hover:shadow-md",
-          "sm:p-8",
+          "relative flex h-full min-h-[360px] flex-col overflow-hidden rounded-2xl",
+          "bg-gradient-to-br",
+          cs.gradient,
         )}
       >
-        <div className="flex flex-col gap-6 lg:flex-row lg:gap-10">
-          {/* Left: text content */}
-          <div className="flex min-w-0 flex-1 flex-col gap-4">
-            {/* Eyebrow */}
-            <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-sea">
-              {cs.label}
-            </p>
-
-            {/* Title + subtitle */}
-            <div>
-              <h3 className="text-xl font-semibold tracking-tight text-deep-sea sm:text-2xl">
-                {cs.title}
-              </h3>
-              <p className="mt-1 text-sm text-slate">{cs.subtitle}</p>
-            </div>
-
-            {/* Written context */}
-            <p className="max-w-2xl text-sm leading-relaxed text-deep-sea/75">
-              {cs.context}
-            </p>
-
-            {/* Metrics */}
-            <MetricRow metrics={cs.metrics} />
-
-            {/* CTA */}
-            <ReadCaseStudyLink title={cs.title} />
-          </div>
-
-          {/* Right: tactical visual — bumped up on lg so it balances the text */}
-          {cs.Visual ? (
-            <div
-              aria-hidden="true"
-              className={cn(
-                "flex shrink-0 items-start justify-start",
-                // Mobile: natural flow; lg: fixed column, centred vertically
-                "lg:w-64 lg:items-center lg:justify-center",
-              )}
-            >
-              <div className="w-full max-w-[11rem] lg:max-w-none">
-                <cs.Visual />
-              </div>
-            </div>
-          ) : null}
-        </div>
+        <StaticCardInner cs={cs} />
       </div>
-    </Reveal>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// GridCaseStudy — compact card for 2-up grid; stable (no pointer tilt)
-// ---------------------------------------------------------------------------
-
-function GridCaseStudy({ cs, delay }: { cs: CaseStudy; delay: number }) {
-  const reduce = useReducedMotion()
-
-  const inner = (
-    <div
-      className={cn(
-        "flex h-full flex-col gap-4 rounded-2xl border border-deep-sea/10 bg-linen p-5 shadow-sm",
-        "transition-shadow duration-300 hover:shadow-md",
-      )}
-    >
-      {/* Eyebrow */}
-      <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-sea">
-        {cs.label}
-      </p>
-
-      {/* Title + subtitle */}
-      <div>
-        <h3 className="text-base font-semibold tracking-tight text-deep-sea">
-          {cs.title}
-        </h3>
-        <p className="mt-0.5 text-xs text-slate">{cs.subtitle}</p>
-      </div>
-
-      {/* Written context */}
-      <p className="flex-1 text-sm leading-relaxed text-deep-sea/75">{cs.context}</p>
-
-      {/* Tactical visual — modest but visible in the grid */}
-      {cs.Visual ? (
-        <div aria-hidden="true" className="w-full max-w-[9rem]">
-          <cs.Visual />
-        </div>
-      ) : null}
-
-      {/* Metrics */}
-      <MetricRow metrics={cs.metrics} />
-
-      {/* Divider + CTA */}
-      <div className="border-t border-deep-sea/10 pt-3">
-        <ReadCaseStudyLink title={cs.title} />
-      </div>
-    </div>
-  )
-
-  if (reduce) {
-    return <div className="h-full">{inner}</div>
+    )
   }
 
   return (
     <motion.div
-      className="h-full"
-      initial={{ opacity: 0, y: 16 }}
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-60px" }}
       transition={{ duration: 0.55, ease: EASE, delay }}
+      style={{
+        rotateX,
+        rotateY,
+        transformStyle: "preserve-3d",
+        // Prevent the 3D element from contributing to page width
+        willChange: "transform",
+      }}
+      className={cn(
+        "relative flex h-full min-h-[360px] cursor-default flex-col overflow-hidden rounded-2xl",
+        "bg-gradient-to-br",
+        cs.gradient,
+      )}
     >
-      {inner}
+      <AnimatedCardInner cs={cs} />
     </motion.div>
   )
 }
 
+/** Inner content shared — elevated via translateZ for the 3D depth effect */
+function AnimatedCardInner({ cs }: { cs: CaseStudy }) {
+  return (
+    <div
+      className="relative flex h-full flex-1 flex-col"
+      style={{ transform: "translateZ(28px)", transformStyle: "preserve-3d" }}
+    >
+      <CardContent cs={cs} />
+    </div>
+  )
+}
+
+/** Static inner for reduced-motion */
+function StaticCardInner({ cs }: { cs: CaseStudy }) {
+  return (
+    <div className="relative flex h-full flex-1 flex-col">
+      <CardContent cs={cs} />
+    </div>
+  )
+}
+
+/** Shared card content: dark scrim + visual + overlay text */
+function CardContent({ cs }: { cs: CaseStudy }) {
+  return (
+    <>
+      {/* SVG visual — subtly layered in the upper portion */}
+      {cs.Visual ? (
+        <div
+          aria-hidden="true"
+          className="absolute right-6 top-6 opacity-40"
+        >
+          <cs.Visual />
+        </div>
+      ) : null}
+
+      {/* Dark gradient scrim for text contrast */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/10 to-deep-sea/70"
+      />
+
+      {/* Top-right circular ArrowUpRight link */}
+      <div className="relative z-10 flex justify-end p-4">
+        <a
+          href="#"
+          aria-label={`Open ${cs.title} case study (coming soon)`}
+          aria-disabled="true"
+          onClick={(e) => e.preventDefault()}
+          className={cn(
+            "flex h-9 w-9 items-center justify-center rounded-full",
+            "bg-white/15 backdrop-blur-sm ring-1 ring-white/25",
+            "text-white/90 transition-colors duration-200 hover:bg-white/25",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-1",
+          )}
+        >
+          <ArrowUpRight aria-hidden="true" className="h-4 w-4" />
+          <span className="sr-only">Open {cs.title} (coming soon)</span>
+        </a>
+      </div>
+
+      {/* Bottom overlay: label + title + subtitle + context + chips + button */}
+      <div className="relative z-10 mt-auto flex flex-col gap-3 p-5 pt-0">
+        {/* Eyebrow label */}
+        <p className="text-[9px] font-medium uppercase tracking-[0.22em] text-white/55">
+          {cs.label}
+        </p>
+
+        {/* Title */}
+        <h3 className="text-lg font-semibold leading-snug tracking-tight text-white">
+          {cs.title}
+        </h3>
+
+        {/* Subtitle */}
+        <p className="text-xs font-medium text-white/70">{cs.subtitle}</p>
+
+        {/* Short context line */}
+        <p className="text-xs leading-relaxed text-white/60">{cs.context}</p>
+
+        {/* Metric chip row */}
+        <div className="flex flex-wrap gap-2 pt-0.5">
+          {cs.metrics.map((m, i) => (
+            <div
+              key={m.label}
+              className={cn(
+                "flex flex-col items-start rounded-lg px-2.5 py-1.5",
+                "bg-white/10 ring-1 ring-white/15",
+              )}
+            >
+              <span
+                className={cn(
+                  "text-sm font-semibold tabular-nums",
+                  i === 0 ? "text-[#d9a441]" : "text-white",
+                )}
+              >
+                <CountUpValue value={m.value} />
+              </span>
+              <span className="text-[9px] uppercase tracking-[0.12em] text-white/50">
+                {m.label}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Glass "Read case study" button */}
+        <a
+          href="#"
+          aria-label={`Read ${cs.title} case study (coming soon)`}
+          aria-disabled="true"
+          onClick={(e) => e.preventDefault()}
+          className={cn(
+            "mt-1 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5",
+            "bg-white/10 backdrop-blur-sm ring-1 ring-white/20",
+            "text-sm font-medium text-white/90",
+            "transition-colors duration-200 hover:bg-white/20",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-1",
+          )}
+        >
+          Read case study
+          <span className="sr-only">(coming soon)</span>
+        </a>
+      </div>
+    </>
+  )
+}
+
 // ---------------------------------------------------------------------------
-// CertificateFrame — on-brand styled placeholder; swaps to <img> when image prop set
-// Real scans: put JPG/PNG in public/certs/ and set the `image` field on a CERTIFICATIONS entry.
+// CertificateFrame — on-brand styled placeholder; swaps to <img> when image set
 // ---------------------------------------------------------------------------
 
 function CertificateFrame({ cert }: { cert: CertEntry }) {
@@ -700,7 +665,7 @@ function CertificateFrame({ cert }: { cert: CertEntry }) {
         preserveAspectRatio="none"
         fill="none"
       >
-        {/* Corner brackets — top-left */}
+        {/* Corner brackets - top-left */}
         <path d="M12 32 L12 12 L32 12" stroke="var(--color-sea)" strokeWidth="1.5" strokeOpacity="0.35" />
         {/* top-right */}
         <path d="M248 12 L268 12 L268 32" stroke="var(--color-sea)" strokeWidth="1.5" strokeOpacity="0.35" />
@@ -753,11 +718,9 @@ function CertificateFrame({ cert }: { cert: CertEntry }) {
 }
 
 // ---------------------------------------------------------------------------
-// CertificateCoverflow — text left, 3D coverflow right
-// Adapted from CircularTestimonials pattern; no new deps, Tailwind + inline styles
+// CertificateCoverflow -- text left, 3D coverflow right (kept exactly)
 // ---------------------------------------------------------------------------
 
-/** Returns 3D transform for coverflow positions: prev / active / next */
 function getCoverflowStyle(
   position: "prev" | "active" | "next",
   reduce: boolean | null,
@@ -789,7 +752,6 @@ function getCoverflowStyle(
   if (position === "prev") {
     return {
       ...BASE,
-      // Reduced translateX (42% instead of 68%) so frame stays within the stage
       transform: "translateX(-50%) translateX(-42%) translateZ(-80px) rotateY(18deg) scale(0.78)",
       left: "50%",
       opacity: 0.38,
@@ -798,10 +760,8 @@ function getCoverflowStyle(
       pointerEvents: "none",
     }
   }
-  // next
   return {
     ...BASE,
-    // Reduced translateX (42% instead of 68%) so frame stays within the stage
     transform: "translateX(-50%) translateX(42%) translateZ(-80px) rotateY(-18deg) scale(0.78)",
     left: "50%",
     opacity: 0.38,
@@ -829,7 +789,6 @@ function CertificateCoverflow() {
   const goPrev = useCallback(() => goTo(active - 1), [active, goTo])
   const goNext = useCallback(() => goTo(active + 1), [active, goTo])
 
-  // Keyboard navigation
   useEffect(() => {
     const el = regionRef.current
     if (!el) return
@@ -846,7 +805,6 @@ function CertificateCoverflow() {
 
   const activeCert = CERTIFICATIONS[active]
 
-  // Which of the 3 visible slots does each cert occupy?
   const getPosition = (i: number): "prev" | "active" | "next" | null => {
     if (i === active) return "active"
     if (i === prevIndex) return "prev"
@@ -854,7 +812,6 @@ function CertificateCoverflow() {
     return null
   }
 
-  // The blurb key drives AnimatePresence re-mount on cert change
   const blurbKey = active
 
   return (
@@ -865,12 +822,10 @@ function CertificateCoverflow() {
       tabIndex={0}
       className="overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-sea focus-visible:ring-offset-4 rounded-2xl"
     >
-      {/* 2-col on md+; stacked on mobile */}
       <div className="flex flex-col gap-10 md:flex-row md:items-center md:gap-14 lg:gap-20">
 
-        {/* ── LEFT: active cert text ── */}
+        {/* LEFT: active cert text */}
         <div className="flex min-w-0 flex-[0_0_auto] flex-col gap-5 md:w-[42%] lg:w-[38%]">
-          {/* Eyebrow — issuer */}
           <AnimatePresence mode="wait">
             <motion.p
               key={`issuer-${blurbKey}`}
@@ -884,7 +839,6 @@ function CertificateCoverflow() {
             </motion.p>
           </AnimatePresence>
 
-          {/* Title */}
           <AnimatePresence mode="wait">
             <motion.h3
               key={`title-${blurbKey}`}
@@ -898,7 +852,6 @@ function CertificateCoverflow() {
             </motion.h3>
           </AnimatePresence>
 
-          {/* Blurb — word blur-fade-in (like CircularTestimonials reference) */}
           <AnimatePresence mode="wait">
             {reduce ? (
               <p
@@ -921,7 +874,6 @@ function CertificateCoverflow() {
             )}
           </AnimatePresence>
 
-          {/* Core-skills chips */}
           <AnimatePresence mode="wait">
             <motion.div
               key={`skills-${blurbKey}`}
@@ -945,7 +897,6 @@ function CertificateCoverflow() {
             </motion.div>
           </AnimatePresence>
 
-          {/* Prev / Next controls — inline with text on mobile */}
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -961,7 +912,6 @@ function CertificateCoverflow() {
               <ArrowLeft aria-hidden="true" className="h-4 w-4" />
             </button>
 
-            {/* Dot indicators */}
             <div
               className="flex items-center gap-1.5"
               role="tablist"
@@ -1002,16 +952,15 @@ function CertificateCoverflow() {
           </div>
         </div>
 
-        {/* ── RIGHT: 3D coverflow of certificate frames ── */}
+        {/* RIGHT: 3D coverflow of certificate frames */}
         <div
           aria-hidden="true"
           className="relative min-w-0 flex-1"
           style={{ perspective: reduce ? "none" : "900px" }}
         >
-          {/* Height container — overflow-hidden clips flanking frames to the stage */}
           <div
             className="relative w-full overflow-hidden rounded-xl"
-            style={{ paddingBottom: "64%" /* aspect height for stage */ }}
+            style={{ paddingBottom: "64%" }}
           >
             {CERTIFICATIONS.map((cert, i) => {
               const pos = getPosition(i)
@@ -1040,7 +989,6 @@ function CertificateCoverflow() {
             })}
           </div>
 
-          {/* Nav count label under coverflow */}
           <p className="mt-3 text-center text-[10px] text-slate/60">
             {active + 1} / {total}
           </p>
@@ -1051,7 +999,7 @@ function CertificateCoverflow() {
 }
 
 // ---------------------------------------------------------------------------
-// Section heading ID (must match SectionHeading's generated id)
+// Section heading ID
 // ---------------------------------------------------------------------------
 
 const HEADING_TITLE = "Self-directed builds and credentials"
@@ -1064,8 +1012,6 @@ const HEADING_ID = HEADING_TITLE.toLowerCase()
 // ---------------------------------------------------------------------------
 
 export function Projects() {
-  const [featured, ...grid] = CASE_STUDIES
-
   return (
     <Section
       id="projects"
@@ -1080,7 +1026,7 @@ export function Projects() {
         />
       </Reveal>
 
-      {/* ── A: Case studies ── */}
+      {/* Case studies */}
       <div className="mt-12">
         <Reveal delay={0.04}>
           <h3 className="mb-6 text-xs font-medium uppercase tracking-[0.22em] text-deep-sea/50">
@@ -1088,26 +1034,20 @@ export function Projects() {
           </h3>
         </Reveal>
 
-        {/* Bordered case-study container */}
-        <div className="rounded-2xl border border-deep-sea/10 bg-linen/30 shadow-sm">
-          {/* Featured — larger, sits at top */}
-          <div className="p-4 sm:p-6">
-            <FeaturedCaseStudy cs={featured} />
-          </div>
-
-          {/* Divider */}
-          <div className="border-t border-deep-sea/10" />
-
-          {/* Grid of remaining case studies */}
-          <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:gap-5 sm:p-6">
-            {grid.map((cs, i) => (
-              <GridCaseStudy key={cs.title} cs={cs} delay={0.08 + i * 0.08} />
+        {/*
+          Outer wrapper: overflow-hidden prevents any preserve-3d tilt from
+          causing horizontal page overflow while keeping clip within the section.
+        */}
+        <div className="overflow-hidden rounded-2xl">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {CASE_STUDIES.map((cs, i) => (
+              <ProjectCard key={cs.title} cs={cs} delay={0.06 + i * 0.08} />
             ))}
           </div>
         </div>
       </div>
 
-      {/* ── B: Certifications coverflow ── */}
+      {/* Certifications coverflow */}
       <div className="mt-16">
         <Reveal delay={0.04}>
           <h3 className="mb-8 text-xs font-medium uppercase tracking-[0.22em] text-deep-sea/50">
