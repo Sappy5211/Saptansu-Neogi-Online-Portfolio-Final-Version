@@ -283,7 +283,7 @@ function validate(fields: FormFields): FormErrors {
 }
 
 // ---------------------------------------------------------------------------
-// MessageComposer — the chat-style card form
+// MessageComposer — the chat-style card form (centred, full-width card)
 // ---------------------------------------------------------------------------
 
 function MessageComposer() {
@@ -410,8 +410,8 @@ function MessageComposer() {
         role="status"
         aria-live="polite"
         className={cn(
-          "rounded-2xl border border-linen/15 bg-linen/5 backdrop-blur-sm",
-          "px-6 py-10 sm:px-8",
+          "w-full rounded-2xl border border-linen/15 bg-linen/5 backdrop-blur-sm",
+          "px-6 py-10 sm:px-10",
           "flex flex-col items-center gap-5 text-center",
         )}
         initial={reduce ? false : { opacity: 0, y: 16 }}
@@ -460,8 +460,8 @@ function MessageComposer() {
       noValidate
       aria-label="Send a message"
       className={cn(
-        "rounded-2xl border border-linen/15 bg-linen/5 backdrop-blur-sm",
-        "px-6 py-7 sm:px-8 sm:py-8",
+        "w-full rounded-2xl border border-linen/15 bg-linen/5 backdrop-blur-sm",
+        "px-6 py-8 sm:px-10 sm:py-10",
       )}
     >
       {/* Honeypot — invisible to real users, attracts bots */}
@@ -654,8 +654,8 @@ function MessageComposer() {
           </div>
         )}
 
-        {/* Submit button */}
-        <div className="pt-1">
+        {/* Submit button — full-width within card for prominence */}
+        <div className="pt-2">
           <ShineWrapper
             reduce={!!reduce}
             roundedClass="rounded-full"
@@ -667,7 +667,7 @@ function MessageComposer() {
               disabled={isDisabled || charOver}
               aria-disabled={isDisabled || charOver}
               className={cn(
-                "w-full sm:w-auto",
+                "w-full",
                 "gap-2.5 min-h-[48px]",
                 "focus-visible:ring-sky-mist focus-visible:ring-offset-deep-sea",
                 "relative overflow-hidden",
@@ -720,44 +720,71 @@ export function Contact() {
       {/* Aurora glow background — behind all content */}
       <AuroraBackground />
 
-      {/* All content sits above the aurora layer */}
-      <div className="relative z-10">
+      {/* All content sits above the aurora layer, centred */}
+      <div className="relative z-10 flex flex-col items-center text-center">
+
         {/* ------------------------------------------------------------------ */}
-        {/* Accessible heading (visually hidden) + short warm invite            */}
+        {/* Eyebrow + heading + lead — centred                                  */}
         {/* ------------------------------------------------------------------ */}
-        <Reveal>
-          <h2 id={HEADING_ID} className="sr-only">
+        <Reveal className="w-full">
+          <p className="text-xs font-medium uppercase tracking-[0.22em] text-sea">
             Contact
+          </p>
+
+          <h2
+            id={HEADING_ID}
+            className="mt-3 text-3xl font-semibold tracking-tight text-linen sm:text-4xl lg:text-5xl"
+          >
+            Let&apos;s work together
           </h2>
 
-          <p className="text-base text-linen/75 sm:text-lg">
+          <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-linen/70 sm:text-lg">
             Have a role, a question, or just want to connect? Send me a note.
           </p>
 
-          <p className="mt-1.5 text-sm font-medium text-sky-mist/90">
+          <p className="mt-2 text-sm font-medium text-sky-mist/90">
             Available from June 2026 &middot; Open to analyst and associate roles in finance, investment banking and data.
           </p>
         </Reveal>
 
         {/* ------------------------------------------------------------------ */}
-        {/* Message composer card                                               */}
+        {/* Message composer card — centred, max-w-xl                           */}
         {/* ------------------------------------------------------------------ */}
-        <Reveal delay={0.07}>
-          <div className="mt-8 max-w-lg">
-            <MessageComposer />
-          </div>
+        <Reveal delay={0.07} className="mt-10 w-full max-w-xl">
+          <MessageComposer />
         </Reveal>
 
         {/* ------------------------------------------------------------------ */}
-        {/* Secondary connect links                                             */}
+        {/* Secondary connect links — centred row below card                    */}
         {/* ------------------------------------------------------------------ */}
-        <Reveal delay={0.14}>
+        <Reveal delay={0.14} className="mt-6 w-full">
           <div
             className={cn(
-              "mt-8 flex flex-col gap-3",
-              "sm:flex-row sm:flex-wrap sm:items-center",
+              "flex flex-col items-center gap-3",
+              "sm:flex-row sm:flex-wrap sm:justify-center",
             )}
           >
+            {/* Copy email */}
+            <ShineWrapper reduce={!!reduce} roundedClass="rounded-full">
+              <a
+                href={`mailto:${EMAIL}`}
+                aria-label={`Send email to ${EMAIL}`}
+                className={cn(
+                  "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full",
+                  "border border-linen/60 bg-transparent px-6 text-sm font-medium text-linen",
+                  "transition-[transform,background-color] duration-300 ease-out",
+                  "hover:bg-linen/10 hover:-translate-y-0.5",
+                  "focus-visible:outline-none focus-visible:ring-2",
+                  "focus-visible:ring-sky-mist focus-visible:ring-offset-2",
+                  "focus-visible:ring-offset-deep-sea",
+                  "relative overflow-hidden",
+                )}
+              >
+                <Copy aria-hidden="true" className="size-4 shrink-0" />
+                {EMAIL}
+              </a>
+            </ShineWrapper>
+
             {/* LinkedIn */}
             <ShineWrapper reduce={!!reduce} roundedClass="rounded-full">
               <a
@@ -808,7 +835,7 @@ export function Contact() {
         {/* ------------------------------------------------------------------ */}
         {/* Minimal footer line                                                 */}
         {/* ------------------------------------------------------------------ */}
-        <Reveal delay={0.2}>
+        <Reveal delay={0.2} className="w-full">
           <p className="mt-14 text-xs text-linen/35 sm:mt-16">
             Saptansu Neogi &middot; {new Date().getFullYear()} &middot; Built with React
           </p>

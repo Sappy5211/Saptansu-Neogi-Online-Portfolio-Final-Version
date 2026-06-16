@@ -5,7 +5,9 @@
  *   - Case-study container: featured (2-col lg) + 2-up grid, rows separated by deep-sea/10 border.
  *   - Each case study: eyebrow label · title + subtitle · 1–2 sentence context ·
  *     compact metric row (count-up) · "Read case study" placeholder link (MoveRight nudge).
- *   - TiltCard on featured; CertCard grid below (unchanged spirit).
+ *   - NO pointer-tracking 3D tilt; cards are stable with a gentle ≤2px lift on hover.
+ *   - Certifications rendered as a horizontal scroll-snap carousel with Prev/Next arrows
+ *     and synced dot indicators (no new deps).
  *   - Reduced-motion aware; all animations via motion/react; no horizontal overflow.
  */
 
@@ -17,14 +19,14 @@ import {
   BarChart3,
   TrendingUp,
   Database,
+  ArrowLeft,
+  ArrowRight,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
-import { useRef, useEffect, useCallback } from "react"
+import { useRef, useEffect, useCallback, useState } from "react"
 import {
   motion,
   useMotionValue,
-  useSpring,
-  useTransform,
   useReducedMotion,
   useInView,
   animate,
@@ -332,7 +334,7 @@ const CERTIFICATIONS: Certification[] = [
   {
     name: "CFA Level 1 Candidate (November 2026)",
     detail:
-      "Studying quant methods, equity, fixed income, derivatives, ethics · portfolio management.",
+      "Studying quant methods · equity · fixed income · derivatives · ethics · portfolio management.",
     Icon: GraduationCap,
   },
   {
@@ -441,81 +443,6 @@ function CountUpValue({ value }: { value: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// TiltCard — 3D pointer-following tilt + glare (preserved from original)
-// ---------------------------------------------------------------------------
-
-function TiltCard({
-  children,
-  className,
-}: {
-  children: React.ReactNode
-  className?: string
-}) {
-  const reduce = useReducedMotion()
-  const cardRef = useRef<HTMLDivElement>(null)
-
-  const rawX = useMotionValue(0.5)
-  const rawY = useMotionValue(0.5)
-
-  const springConfig = { stiffness: 260, damping: 28, mass: 0.6 }
-  const smoothX = useSpring(rawX, springConfig)
-  const smoothY = useSpring(rawY, springConfig)
-
-  const rotateY = useTransform(smoothX, [0, 1], [-7, 7])
-  const rotateX = useTransform(smoothY, [0, 1], [7, -7])
-
-  const glareX = useTransform(smoothX, [0, 1], ["0%", "100%"])
-  const glareY = useTransform(smoothY, [0, 1], ["0%", "100%"])
-  const glareOpacityRaw = useMotionValue(0)
-  const glareOpacity = useSpring(glareOpacityRaw, { stiffness: 200, damping: 30 })
-  const glareBackground = useTransform(
-    [glareX, glareY] as const,
-    ([x, y]: string[]) =>
-      `radial-gradient(circle at ${x} ${y}, rgba(191,224,232,0.2) 0%, transparent 65%)`,
-  )
-
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (!cardRef.current) return
-      const rect = cardRef.current.getBoundingClientRect()
-      rawX.set((e.clientX - rect.left) / rect.width)
-      rawY.set((e.clientY - rect.top) / rect.height)
-      glareOpacityRaw.set(1)
-    },
-    [rawX, rawY, glareOpacityRaw],
-  )
-
-  const handleMouseLeave = useCallback(() => {
-    rawX.set(0.5)
-    rawY.set(0.5)
-    glareOpacityRaw.set(0)
-  }, [rawX, rawY, glareOpacityRaw])
-
-  if (reduce) {
-    return <div className={className}>{children}</div>
-  }
-
-  return (
-    <div style={{ perspective: "900px" }}>
-      <motion.div
-        ref={cardRef}
-        className={cn("relative", className)}
-        style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-      >
-        {children}
-        <motion.div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 rounded-2xl"
-          style={{ opacity: glareOpacity, background: glareBackground }}
-        />
-      </motion.div>
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
 // Metric row (count-up chips) — shared by featured + grid cards
 // ---------------------------------------------------------------------------
 
@@ -568,16 +495,16 @@ function ReadCaseStudyLink({ title }: { title: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// FeaturedCaseStudy — larger 2-col layout on lg
+// FeaturedCaseStudy — larger 2-col layout on lg; stable card (no pointer tilt)
 // ---------------------------------------------------------------------------
 
 function FeaturedCaseStudy({ cs }: { cs: CaseStudy }) {
   return (
     <Reveal delay={0.04}>
-      <TiltCard
+      <div
         className={cn(
           "rounded-2xl border border-deep-sea/10 bg-linen p-6 shadow-sm",
-          "transition-shadow duration-300 hover:shadow-md hover:bg-linen/80",
+          "transition-shadow duration-300 hover:shadow-md",
           "sm:p-8",
         )}
       >
@@ -619,13 +546,13 @@ function FeaturedCaseStudy({ cs }: { cs: CaseStudy }) {
             </div>
           ) : null}
         </div>
-      </TiltCard>
+      </div>
     </Reveal>
   )
 }
 
 // ---------------------------------------------------------------------------
-// GridCaseStudy — compact card for 2-up grid
+// GridCaseStudy — compact card for 2-up grid; stable (no pointer tilt)
 // ---------------------------------------------------------------------------
 
 function GridCaseStudy({ cs, delay }: { cs: CaseStudy; delay: number }) {
@@ -635,7 +562,7 @@ function GridCaseStudy({ cs, delay }: { cs: CaseStudy; delay: number }) {
     <div
       className={cn(
         "flex h-full flex-col gap-4 rounded-2xl border border-deep-sea/10 bg-linen p-5 shadow-sm",
-        "transition-colors duration-300 hover:bg-linen/80 hover:shadow-md",
+        "transition-shadow duration-300 hover:shadow-md",
       )}
     >
       {/* Eyebrow */}
@@ -716,34 +643,161 @@ function CertCardInner({ cert }: { cert: Certification }) {
 }
 
 // ---------------------------------------------------------------------------
-// CertCard — stagger fade-in (no tilt; distinct from project cards)
+// CertificationsCarousel — horizontal scroll-snap carousel; no new deps
 // ---------------------------------------------------------------------------
 
-function CertCard({ cert, index }: { cert: Certification; index: number }) {
+function CertificationsCarousel() {
   const reduce = useReducedMotion()
-  const delay = 0.06 + index * 0.05
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [atStart, setAtStart] = useState(true)
+  const [atEnd, setAtEnd] = useState(false)
 
-  if (reduce) {
-    return (
-      <article className="flex gap-4 rounded-2xl border border-deep-sea/10 bg-linen p-5 shadow-sm">
-        <CertCardInner cert={cert} />
-      </article>
-    )
-  }
+  const CARD_WIDTH_MOBILE = 280
+  const CARD_WIDTH_SM = 320
+  const GAP = 16 // gap-4
+
+  /** Measure the actual card width from the first child. */
+  const getCardWidth = useCallback((): number => {
+    const el = scrollRef.current
+    if (!el) return CARD_WIDTH_MOBILE
+    const first = el.firstElementChild as HTMLElement | null
+    if (!first) return CARD_WIDTH_MOBILE
+    return first.offsetWidth + GAP
+  }, [])
+
+  const updateState = useCallback(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const cardW = getCardWidth()
+    const index = Math.round(el.scrollLeft / cardW)
+    setActiveIndex(index)
+    setAtStart(el.scrollLeft <= 4)
+    setAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 4)
+  }, [getCardWidth])
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    el.addEventListener("scroll", updateState, { passive: true })
+    // Initialise on mount
+    updateState()
+    return () => el.removeEventListener("scroll", updateState)
+  }, [updateState])
+
+  const scrollToIndex = useCallback(
+    (index: number) => {
+      const el = scrollRef.current
+      if (!el) return
+      const cardW = getCardWidth()
+      el.scrollTo({ left: index * cardW, behavior: reduce ? "auto" : "smooth" })
+    },
+    [getCardWidth, reduce],
+  )
+
+  const prev = useCallback(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const cardW = getCardWidth()
+    el.scrollBy({ left: -cardW, behavior: reduce ? "auto" : "smooth" })
+  }, [getCardWidth, reduce])
+
+  const next = useCallback(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const cardW = getCardWidth()
+    el.scrollBy({ left: cardW, behavior: reduce ? "auto" : "smooth" })
+  }, [getCardWidth, reduce])
 
   return (
-    <motion.article
-      className={cn(
-        "flex gap-4 rounded-2xl border border-deep-sea/10 bg-linen p-5 shadow-sm",
-        "transition-transform duration-300 hover:-translate-y-0.5 hover:shadow-md",
-      )}
-      initial={{ opacity: 0, y: 14 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-60px" }}
-      transition={{ duration: 0.5, ease: EASE, delay }}
-    >
-      <CertCardInner cert={cert} />
-    </motion.article>
+    <div>
+      {/* Scroll region — overflow-hidden on wrapper prevents page horizontal scroll */}
+      <div className="overflow-hidden">
+        <div
+          ref={scrollRef}
+          role="region"
+          aria-label="Certifications"
+          className={cn(
+            "flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory",
+            // Hide scrollbar cross-browser
+            "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+            // Bottom padding so box-shadows aren't clipped
+            "pb-2",
+          )}
+        >
+          {CERTIFICATIONS.map((cert) => (
+            <article
+              key={cert.name}
+              className={cn(
+                "snap-start shrink-0 w-[280px] sm:w-[320px]",
+                "flex gap-4 rounded-2xl border border-deep-sea/10 bg-linen p-5 shadow-sm",
+                "transition-shadow duration-300 hover:shadow-md",
+              )}
+            >
+              <CertCardInner cert={cert} />
+            </article>
+          ))}
+        </div>
+      </div>
+
+      {/* Controls: arrows + dots */}
+      <div className="mt-5 flex items-center justify-center gap-4">
+        {/* Prev arrow */}
+        <button
+          type="button"
+          onClick={prev}
+          disabled={atStart}
+          aria-label="Previous certification"
+          className={cn(
+            "flex h-9 w-9 items-center justify-center rounded-full border border-deep-sea/15",
+            "bg-linen text-deep-sea shadow-sm",
+            "transition-opacity duration-200",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea focus-visible:ring-offset-2",
+            atStart ? "opacity-30 cursor-not-allowed" : "hover:bg-shell cursor-pointer",
+          )}
+        >
+          <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+        </button>
+
+        {/* Dot indicators */}
+        <div className="flex items-center gap-2" role="tablist" aria-label="Certification indicator">
+          {CERTIFICATIONS.map((cert, i) => (
+            <button
+              key={cert.name}
+              type="button"
+              role="tab"
+              aria-selected={i === activeIndex}
+              aria-label={`Go to certification ${i + 1}: ${cert.name}`}
+              onClick={() => scrollToIndex(i)}
+              className={cn(
+                "h-2 rounded-full transition-all duration-200",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea focus-visible:ring-offset-2",
+                i === activeIndex
+                  ? "w-5 bg-sea"
+                  : "w-2 bg-deep-sea/20 hover:bg-deep-sea/40 cursor-pointer",
+              )}
+            />
+          ))}
+        </div>
+
+        {/* Next arrow */}
+        <button
+          type="button"
+          onClick={next}
+          disabled={atEnd}
+          aria-label="Next certification"
+          className={cn(
+            "flex h-9 w-9 items-center justify-center rounded-full border border-deep-sea/15",
+            "bg-linen text-deep-sea shadow-sm",
+            "transition-opacity duration-200",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea focus-visible:ring-offset-2",
+            atEnd ? "opacity-30 cursor-not-allowed" : "hover:bg-shell cursor-pointer",
+          )}
+        >
+          <ArrowRight aria-hidden="true" className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -804,7 +858,7 @@ export function Projects() {
         </div>
       </div>
 
-      {/* ── B: Certifications ── */}
+      {/* ── B: Certifications carousel ── */}
       <div className="mt-16">
         <Reveal delay={0.04}>
           <h3 className="mb-6 text-xs font-medium uppercase tracking-[0.22em] text-deep-sea/50">
@@ -812,11 +866,9 @@ export function Projects() {
           </h3>
         </Reveal>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
-          {CERTIFICATIONS.map((cert, i) => (
-            <CertCard key={cert.name} cert={cert} index={i} />
-          ))}
-        </div>
+        <Reveal delay={0.08}>
+          <CertificationsCarousel />
+        </Reveal>
       </div>
     </Section>
   )

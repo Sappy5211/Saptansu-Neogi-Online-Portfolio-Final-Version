@@ -157,7 +157,7 @@ export function Hero() {
             variants={item}
             className="max-w-xl text-sm leading-relaxed text-linen/75 sm:text-base"
           >
-            Finance reporting at Nationwide, consulting research across 10+
+            Finance reporting at Nationwide Building Society, consulting research across 10+
             clients, and independent corporate finance builds. Every output
             traces to a real decision and a measurable outcome.
           </motion.p>

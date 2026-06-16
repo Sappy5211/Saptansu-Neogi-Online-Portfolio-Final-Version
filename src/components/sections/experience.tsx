@@ -1,14 +1,15 @@
 /**
- * experience.tsx — Work Experience section (v2).
+ * experience.tsx — Work Experience section (v3).
  *
  * TEXT LEADS. Each open card shows: one-line scope, then 3–5 readable bullets
  * with sea-dot markers and generous leading, then a compact supporting stat
  * strip (secondary), then a CORE SKILLS GAINED pill-tag row.
  *
  * Interaction:
- *  - Hover card header  → expands as preview; mouse-leave collapses.
- *  - Click              → PINS open (persists after mouse-leave).
- *  - Click pinned card  → unpins (collapses).
+ *  - Hover anywhere in the card (header OR expanded body) → expands as preview;
+ *    mouse-leave collapses only when leaving the entire card wrapper.
+ *  - Click header/chevron → PINS open (persists after mouse-leave).
+ *  - Click pinned card   → unpins (collapses).
  *  - Multiple cards may be open at once (independent state).
  *  - State: pinned: Set<id> + hovered: id | null
  *            isOpen = pinned.has(id) || hovered === id
@@ -73,9 +74,9 @@ interface Role {
   /** Optional label (Volunteer, Part-time, Society). */
   badge?: string
   /** One-sentence scope line rendered at the top of the open panel. */
-  scope: string
+  scope: React.ReactNode
   /** Verbatim bullets from spec — the MEAT of the card. */
-  bullets: string[]
+  bullets: React.ReactNode[]
   /** 3–4 supporting stat visuals — secondary, compact, below bullets. */
   stats: StatCard[]
   /** Core skills gained pill tags. */
@@ -83,9 +84,21 @@ interface Role {
 }
 
 // ---------------------------------------------------------------------------
-// Role data — verbatim from SECTIONS_V2 §AGENT A.
+// Helper — inline figure highlight
+// ---------------------------------------------------------------------------
+
+/** Wrap a numeric token so it stands out per the global highlight rule. */
+function Fig({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="font-semibold text-deep-sea">{children}</span>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Role data — verbatim from spec.
 // UK English; no em dashes; no invented numbers; back-tested caveats kept;
 // "contributed/supported" framing for Oxbridge.
+// Figures highlighted with <Fig> per global rule.
 // ---------------------------------------------------------------------------
 
 const ROLES: Role[] = [
@@ -96,14 +109,38 @@ const ROLES: Role[] = [
     title: "Finance Intern, Finance Division",
     dates: "Jul 2025 – Aug 2025",
     chip: "12% cycle cut",
-    scope:
-      "Live finance-division internship across month-end reporting, data governance, AI adoption and business problem-solving.",
+    scope: (
+      <>
+        Live finance-division internship across month-end reporting, data
+        governance, AI adoption and business problem-solving.
+      </>
+    ),
     bullets: [
-      "Consolidated fragmented month-end finance data into one refreshable Power BI and advanced Excel model, removing repeated manual rebuilds, cutting the reporting cycle 12% and improving director-pack precision.",
-      "Cleaned 400+ finance records and filled 100+ missing fields, lifting data completeness to 97% and making every director-pack figure traceable to source.",
-      "Built a self-checking Excel control template that flagged entry errors before sign-off, correcting 60+ board-pack entries and cutting rework about 20% across three reporting cycles.",
-      "Led a 4-person team across 5 stakeholder groups on a live business case, converting operational constraints into a finance-led recommendation rated best in the cohort by leadership.",
-      "Scoped a Microsoft Copilot adoption plan for the finance division, mapping use cases and governance controls for risk, compliance and approval, and presented it to senior leadership.",
+      <>
+        Consolidated fragmented month-end finance data into one refreshable Power
+        BI and advanced Excel model, removing repeated manual rebuilds, cutting
+        the reporting cycle <Fig>12%</Fig> and improving director-pack precision.
+      </>,
+      <>
+        Cleaned <Fig>400+</Fig> finance records and filled <Fig>100+</Fig>{" "}
+        missing fields, lifting data completeness to <Fig>97%</Fig> and making
+        every director-pack figure traceable to source.
+      </>,
+      <>
+        Built a self-checking Excel control template that flagged entry errors
+        before sign-off, correcting <Fig>60+</Fig> board-pack entries and cutting
+        rework about <Fig>20%</Fig> across <Fig>three</Fig> reporting cycles.
+      </>,
+      <>
+        Led a <Fig>4</Fig>-person team across <Fig>5</Fig> stakeholder groups on
+        a live business case, converting operational constraints into a
+        finance-led recommendation rated best in the cohort by leadership.
+      </>,
+      <>
+        Scoped a Microsoft Copilot adoption plan for the finance division, mapping
+        use cases and governance controls for risk, compliance and approval, and
+        presented it to senior leadership.
+      </>,
     ],
     stats: [
       { type: "squiggle", value: "12%",  label: "Reporting cycle cut", accent: "golden" },
@@ -129,13 +166,32 @@ const ROLES: Role[] = [
     dates: "Sep 2025 – Present",
     chip: "25% CTR uplift",
     badge: "Part-time",
-    scope:
-      "KPI-led communications, event operations and stakeholder coordination for a finance-focused professional community.",
+    scope: (
+      <>
+        KPI-led communications, event operations and stakeholder coordination for
+        a finance-focused professional community.
+      </>
+    ),
     bullets: [
-      "Built a weekly KPI framework and campaign database, using performance data to refine content, messaging and timing and raise click-through rate 25%.",
-      "Ran a multi-channel LinkedIn and Instagram programme, growing engagement 35% across early-career finance audiences.",
-      "Coordinated 6+ finance and investment-banking events end to end, managing materials, stakeholders and attendee workflows to lift registrations 28%.",
-      "Standardised content, operations and event workflows, improving turnaround about 30% and holding 99% on-time delivery across assets and materials.",
+      <>
+        Built a weekly KPI framework and campaign database, using performance data
+        to refine content, messaging and timing and raise click-through rate{" "}
+        <Fig>25%</Fig>.
+      </>,
+      <>
+        Ran a multi-channel LinkedIn and Instagram programme, growing engagement{" "}
+        <Fig>35%</Fig> across early-career finance audiences.
+      </>,
+      <>
+        Coordinated <Fig>6+</Fig> finance and investment-banking events end to
+        end, managing materials, stakeholders and attendee workflows to lift
+        registrations <Fig>28%</Fig>.
+      </>,
+      <>
+        Standardised content, operations and event workflows, improving
+        turnaround about <Fig>30%</Fig> and holding <Fig>99%</Fig> on-time
+        delivery across assets and materials.
+      </>,
     ],
     stats: [
       { type: "trend", value: "25%", label: "CTR uplift",       direction: "up"  },
@@ -160,13 +216,32 @@ const ROLES: Role[] = [
     dates: "Jun 2024 – Jul 2024",
     chip: "10+ workstreams",
     badge: "Volunteer",
-    scope:
-      "Consulting-style research across market intelligence, ESG analytics, supply-chain strategy and client decision support.",
+    scope: (
+      <>
+        Consulting-style research across market intelligence, ESG analytics,
+        supply-chain strategy and client decision support.
+      </>
+    ),
     bullets: [
-      "Contributed market, ESG and operational research across 10+ client workstreams, turning scattered inputs into stakeholder-ready briefs and commercial recommendations.",
-      "Structured 1,500+ raw research inputs into forecasting-ready datasets, improving clarity for planning, scenario analysis and client-facing recommendations.",
-      "Built supply-chain and sustainability analysis supporting a decarbonisation workstream linked to a ~20% carbon-emissions reduction.",
-      "Produced 12+ research packs across 6+ workstreams, converting raw analysis into practical ESG and commercial actions.",
+      <>
+        Contributed market, ESG and operational research across <Fig>10+</Fig>{" "}
+        client workstreams, turning scattered inputs into stakeholder-ready briefs
+        and commercial recommendations.
+      </>,
+      <>
+        Structured <Fig>1,500+</Fig> raw research inputs into
+        forecasting-ready datasets, improving clarity for planning, scenario
+        analysis and client-facing recommendations.
+      </>,
+      <>
+        Built supply-chain and sustainability analysis supporting a
+        decarbonisation workstream linked to a <Fig>~20%</Fig> carbon-emissions
+        reduction.
+      </>,
+      <>
+        Produced <Fig>12+</Fig> research packs across <Fig>6+</Fig> workstreams,
+        converting raw analysis into practical ESG and commercial actions.
+      </>,
     ],
     stats: [
       { type: "badge", value: "10+",    label: "Client workstreams",     icon: Workflow },
@@ -191,13 +266,33 @@ const ROLES: Role[] = [
     dates: "Oct 2023 – Mar 2024",
     chip: "+25% Sharpe (back-tested)",
     badge: "Society",
-    scope:
-      "Quantitative research across Python strategy design, back-testing, equity screening and investment reporting.",
+    scope: (
+      <>
+        Quantitative research across Python strategy design, back-testing, equity
+        screening and investment reporting.
+      </>
+    ),
     bullets: [
-      "Designed and back-tested 3 Python (pandas) trading strategies across 36 months of traditional and alternative data, testing whether momentum and volatility signals held across market regimes.",
-      "Tuned entry, exit and position-sizing rules to improve risk-adjusted return, lifting the back-tested Sharpe ratio 25% and cutting maximum drawdown 7% under stress scenarios.",
-      "Produced 8+ equity research notes on high-conviction names including Tesla, translating catalysts, valuation drivers and risks into a clear buy, hold or sell view.",
-      "Presented and defended 4 strategy diagnostics and Python back-test outputs to a 5-person quant team, sharpening technical communication and investment judgement.",
+      <>
+        Designed and back-tested <Fig>3</Fig> Python (pandas) trading strategies
+        across <Fig>36</Fig> months of traditional and alternative data, testing
+        whether momentum and volatility signals held across market regimes.
+      </>,
+      <>
+        Tuned entry, exit and position-sizing rules to improve risk-adjusted
+        return, lifting the back-tested Sharpe ratio <Fig>25%</Fig> and cutting
+        maximum drawdown <Fig>7%</Fig> under stress scenarios.
+      </>,
+      <>
+        Produced <Fig>8+</Fig> equity research notes on high-conviction names
+        including Tesla, translating catalysts, valuation drivers and risks into a
+        clear buy, hold or sell view.
+      </>,
+      <>
+        Presented and defended <Fig>4</Fig> strategy diagnostics and Python
+        back-test outputs to a <Fig>5</Fig>-person quant team, sharpening
+        technical communication and investment judgement.
+      </>,
     ],
     stats: [
       { type: "trend", value: "+25%", label: "Sharpe (back-tested)",   direction: "up"   },
@@ -240,10 +335,10 @@ function RenderStatCard({ card }: { card: StatCard }) {
 }
 
 // ---------------------------------------------------------------------------
-// BulletItem
+// BulletItem — accepts ReactNode so figures can be wrapped with <Fig>
 // ---------------------------------------------------------------------------
 
-function BulletItem({ text }: { text: string }) {
+function BulletItem({ text }: { text: React.ReactNode }) {
   return (
     <li className="flex gap-3 text-base leading-relaxed text-deep-sea/75">
       {/* Sea-dot marker */}
@@ -293,7 +388,7 @@ function PanelContent({ role }: { role: Role }) {
         ))}
       </ul>
 
-      {/* 3. Supporting stat strip — compact, secondary, wraps on mobile */}
+      {/* 3. Supporting stat strip — compact, secondary, 2-col on mobile */}
       <div
         className="mb-6 grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3"
         aria-label="Key metrics"
@@ -324,7 +419,7 @@ function PanelContent({ role }: { role: Role }) {
 }
 
 // ---------------------------------------------------------------------------
-// ExperienceCard — single card with hover-preview + click-pin interaction
+// ExperienceCard — single card with whole-card hover + click-pin interaction
 // ---------------------------------------------------------------------------
 
 interface ExperienceCardProps {
@@ -349,12 +444,16 @@ function ExperienceCard({
   const { Icon } = role
 
   return (
+    // Hover handlers on the WHOLE card wrapper so moving into the expanded
+    // body keeps the card open; it collapses only when leaving the entire card.
     <div
       className={cn(
         "relative overflow-hidden rounded-2xl border bg-linen",
         "transition-[border-color,box-shadow] duration-300",
         isOpen ? "border-sea/30 shadow-sm" : "border-deep-sea/10",
       )}
+      onMouseEnter={reduce ? undefined : onMouseEnter}
+      onMouseLeave={reduce ? undefined : onMouseLeave}
     >
       {/* Left accent bar — visible when open */}
       <div
@@ -372,8 +471,6 @@ function ExperienceCard({
         aria-expanded={isOpen}
         aria-controls={panelId}
         onClick={onTogglePin}
-        onMouseEnter={reduce ? undefined : onMouseEnter}
-        onMouseLeave={reduce ? undefined : onMouseLeave}
         className={cn(
           "flex w-full min-w-0 items-center gap-3 px-5 py-4 text-left sm:gap-4 sm:px-6 sm:py-5",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea focus-visible:ring-inset",
