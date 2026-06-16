@@ -1,21 +1,26 @@
 /**
- * experience.tsx — Work Experience section (v3).
+ * experience.tsx — Work Experience section (v4).
  *
  * TEXT LEADS. Each open card shows: one-line scope, then 3–5 readable bullets
  * with sea-dot markers and generous leading, then a compact supporting stat
  * strip (secondary), then a CORE SKILLS GAINED pill-tag row.
  *
  * Interaction:
- *  - Hover anywhere in the card (header OR expanded body) → expands as preview;
- *    mouse-leave collapses only when leaving the entire card wrapper.
- *  - Click header/chevron → PINS open (persists after mouse-leave).
- *  - Click pinned card   → unpins (collapses).
- *  - Multiple cards may be open at once (independent state).
- *  - State: pinned: Set<id> + hovered: id | null
- *            isOpen = pinned.has(id) || hovered === id
+ *  - Nationwide Building Society opens by DEFAULT on first load.
+ *  - Hover anywhere in the card (header OR expanded body) → previews open
+ *    for cards with no forced state; mouse-leave collapses only when leaving
+ *    the entire card wrapper.
+ *  - Click header/chevron → DEFINITIVE toggle that OVERRIDES hover:
+ *      clicking an open card forces it closed (stays closed even while hovered);
+ *      clicking a closed card forces it open (stays open until clicked again).
+ *  - Multiple cards may be forced-open simultaneously.
+ *  - State: forced: Record<id, boolean> (true = force-open, false = force-closed;
+ *            absent = hover-driven) + hovered: id | null
+ *            isOpen(id) = id in forced ? forced[id] : hovered === id
+ *  - Initialised with forced = { nationwide: true } so Nationwide is open by default.
  *
- * Reduced-motion: hover-preview disabled; click-only toggle; instant show/hide.
- * A11y: real <button aria-expanded aria-controls>; Enter/Space toggles pin;
+ * Reduced-motion: hover-preview disabled; click/keyboard only; instant show/hide.
+ * A11y: real <button aria-expanded aria-controls>; Enter/Space toggles;
  *        focus ring ring-sea; decorative icons aria-hidden.
  */
 
@@ -570,12 +575,27 @@ function ExperienceCard({
 // Public export
 // ---------------------------------------------------------------------------
 
+/** The id of the card that is open by default on first load. */
+const DEFAULT_OPEN_ID = "nationwide"
+
 export function Experience() {
   const reduce = useReducedMotion() ?? false
 
-  // Multi-open state: pinned Set + hovered id
-  const [pinned, setPinned] = useState<Set<string>>(new Set())
+  // forced: Record<id, boolean>
+  //   id in forced && forced[id] === true  → force-open (overrides hover)
+  //   id in forced && forced[id] === false → force-closed (overrides hover)
+  //   id not in forced                     → hover-driven
+  // Initialise with Nationwide forced-open so it shows expanded on load.
+  const [forced, setForced] = useState<Record<string, boolean>>({
+    [DEFAULT_OPEN_ID]: true,
+  })
   const [hovered, setHovered] = useState<string | null>(null)
+
+  const isOpen = useCallback(
+    (id: string): boolean =>
+      id in forced ? forced[id] : hovered === id,
+    [forced, hovered],
+  )
 
   const handleMouseEnter = useCallback((id: string) => {
     setHovered(id)
@@ -585,17 +605,15 @@ export function Experience() {
     setHovered(null)
   }, [])
 
-  const handleTogglePin = useCallback((id: string) => {
-    setPinned((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        next.add(id)
-      }
-      return next
-    })
-  }, [])
+  // Definitive toggle: current open state (forced OR hovered) → flip forced to opposite.
+  // After this the card's open/closed state is driven by forced[id], not hover.
+  const handleToggle = useCallback(
+    (id: string) => {
+      const open = id in forced ? forced[id] : hovered === id
+      setForced((prev) => ({ ...prev, [id]: !open }))
+    },
+    [forced, hovered],
+  )
 
   return (
     <Section
@@ -619,16 +637,16 @@ export function Experience() {
         aria-label="Experience cards"
       >
         {ROLES.map((role) => {
-          const isOpen = pinned.has(role.id) || hovered === role.id
+          const open = isOpen(role.id)
           return (
             <div key={role.id} role="listitem">
               <ExperienceCard
                 role={role}
-                isOpen={isOpen}
+                isOpen={open}
                 reduce={reduce}
                 onMouseEnter={() => handleMouseEnter(role.id)}
                 onMouseLeave={handleMouseLeave}
-                onTogglePin={() => handleTogglePin(role.id)}
+                onTogglePin={() => handleToggle(role.id)}
               />
             </div>
           )

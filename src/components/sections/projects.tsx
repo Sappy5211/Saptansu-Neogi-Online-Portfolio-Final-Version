@@ -6,30 +6,25 @@
  *   - Each case study: eyebrow label · title + subtitle · 1–2 sentence context ·
  *     compact metric row (count-up) · "Read case study" placeholder link (MoveRight nudge).
  *   - NO pointer-tracking 3D tilt; cards are stable with a gentle ≤2px lift on hover.
- *   - Certifications rendered as a horizontal scroll-snap carousel with Prev/Next arrows
- *     and synced dot indicators (no new deps).
+ *   - Certifications: CertificateCoverflow — text left, 3D coverflow right.
+ *     Real certificate scans go in public/certs/ and set the `image` field on each cert entry.
  *   - Reduced-motion aware; all animations via motion/react; no horizontal overflow.
  */
 
 import {
-  GraduationCap,
-  Award,
-  FileText,
   MoveRight,
-  BarChart3,
-  TrendingUp,
-  Database,
   ArrowLeft,
   ArrowRight,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
-import { useRef, useEffect, useCallback, useState } from "react"
+import { useRef, useEffect, useCallback, useState, useMemo } from "react"
 import {
   motion,
   useMotionValue,
   useReducedMotion,
   useInView,
   animate,
+  AnimatePresence,
 } from "motion/react"
 
 import { Section, SectionHeading } from "@/components/ui/section"
@@ -38,7 +33,7 @@ import { cn } from "@/lib/utils"
 import { EASE } from "@/lib/motion"
 
 // ---------------------------------------------------------------------------
-// Data
+// Data — Case Studies
 // ---------------------------------------------------------------------------
 
 interface CaseMetric {
@@ -71,35 +66,34 @@ function VoltaGridVisual() {
   const reduce = useReducedMotion()
   const inView = useInView(ref as React.RefObject<Element>, { once: true, margin: "-60px" })
 
-  // Bar heights for base / upside / downside scenario return bands
   const bars = [
-    { x: 12, h: 52, label: "Base", value: "22%", fill: "var(--color-sea)" },
-    { x: 46, h: 70, label: "Up", value: "28%", fill: "var(--color-golden-hour)" },
-    { x: 80, h: 34, label: "Down", value: "14%", fill: "var(--color-sea)" },
+    { x: 14, h: 68, label: "Base", value: "22%", fill: "var(--color-sea)" },
+    { x: 54, h: 90, label: "Up", value: "28%", fill: "var(--color-golden-hour)" },
+    { x: 94, h: 46, label: "Down", value: "14%", fill: "var(--color-sea)" },
   ]
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
       <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate">
         IRR · 3 scenarios (modelled)
       </p>
       <svg
         ref={ref}
-        viewBox="0 0 120 90"
+        viewBox="0 0 144 116"
         aria-hidden="true"
-        className="w-full max-w-[9rem]"
+        className="w-full max-w-[9rem] lg:max-w-[11rem]"
         preserveAspectRatio="xMidYMid meet"
       >
         {/* Baseline */}
-        <line x1="4" y1="82" x2="116" y2="82" stroke="var(--color-shell)" strokeWidth={1} />
+        <line x1="4" y1="106" x2="140" y2="106" stroke="var(--color-shell)" strokeWidth={1} />
         {bars.map((bar) => (
           <g key={bar.label}>
             <motion.rect
               x={bar.x}
-              y={82 - bar.h}
-              width={22}
+              y={106 - bar.h}
+              width={28}
               height={bar.h}
-              rx={3}
+              rx={4}
               fill={bar.fill}
               fillOpacity={0.85}
               initial={{ scaleY: 0, originY: 1 }}
@@ -110,7 +104,7 @@ function VoltaGridVisual() {
                   ? { scaleY: 1 }
                   : { scaleY: 0 }
               }
-              style={{ transformOrigin: `${bar.x + 11}px 82px` }}
+              style={{ transformOrigin: `${bar.x + 14}px 106px` }}
               transition={
                 reduce
                   ? { duration: 0 }
@@ -118,20 +112,20 @@ function VoltaGridVisual() {
               }
             />
             <text
-              x={bar.x + 11}
-              y={82 - bar.h - 4}
+              x={bar.x + 14}
+              y={106 - bar.h - 5}
               textAnchor="middle"
-              fontSize={8}
+              fontSize={9}
               fill="var(--color-deep-sea)"
               fontFamily="inherit"
             >
               {bar.value}
             </text>
             <text
-              x={bar.x + 11}
-              y={89}
+              x={bar.x + 14}
+              y={115}
               textAnchor="middle"
-              fontSize={7}
+              fontSize={8}
               fill="var(--color-slate)"
               fontFamily="inherit"
             >
@@ -150,18 +144,17 @@ function AquaServeVisual() {
   const reduce = useReducedMotion()
   const inView = useInView(ref as React.RefObject<Element>, { once: true, margin: "-60px" })
 
-  const WIDTH = 120
-  const HEIGHT = 38
-  const barY = 16
-  const barH = 12
-  const totalW = 108
-  const startX = 6
+  const WIDTH = 144
+  const HEIGHT = 48
+  const barY = 18
+  const barH = 16
+  const totalW = 130
+  const startX = 7
 
-  // Leverage fill ~65% of max covenant
   const fillW = totalW * 0.65
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
       <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate">
         Leverage vs covenant (8.0× EBITDA)
       </p>
@@ -169,18 +162,18 @@ function AquaServeVisual() {
         ref={ref}
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         aria-hidden="true"
-        className="w-full max-w-[9rem]"
+        className="w-full max-w-[9rem] lg:max-w-[11rem]"
         preserveAspectRatio="xMidYMid meet"
       >
         {/* Track */}
-        <rect x={startX} y={barY} width={totalW} height={barH} rx={4} fill="var(--color-shell)" />
+        <rect x={startX} y={barY} width={totalW} height={barH} rx={5} fill="var(--color-shell)" />
         {/* Fill bar */}
         <motion.rect
           x={startX}
           y={barY}
           width={fillW}
           height={barH}
-          rx={4}
+          rx={5}
           fill="var(--color-sea)"
           fillOpacity={0.85}
           initial={{ scaleX: 0 }}
@@ -201,18 +194,25 @@ function AquaServeVisual() {
         {/* Covenant line */}
         <line
           x1={startX + totalW * 0.85}
-          y1={barY - 3}
+          y1={barY - 4}
           x2={startX + totalW * 0.85}
-          y2={barY + barH + 3}
+          y2={barY + barH + 4}
           stroke="var(--color-golden-hour)"
           strokeWidth={1.5}
           strokeDasharray="3 2"
         />
         {/* Labels */}
-        <text x={startX} y={barY + barH + 11} fontSize={7} fill="var(--color-slate)" fontFamily="inherit">
+        <text x={startX} y={barY + barH + 13} fontSize={8} fill="var(--color-slate)" fontFamily="inherit">
           Debt
         </text>
-        <text x={startX + totalW * 0.85} y={barY - 5} textAnchor="middle" fontSize={7} fill="var(--color-golden-hour)" fontFamily="inherit">
+        <text
+          x={startX + totalW * 0.85}
+          y={barY - 6}
+          textAnchor="middle"
+          fontSize={8}
+          fill="var(--color-golden-hour)"
+          fontFamily="inherit"
+        >
           Covenant
         </text>
       </svg>
@@ -227,21 +227,21 @@ function DashboardVisual() {
   const inView = useInView(ref as React.RefObject<Element>, { once: true, margin: "-60px" })
 
   const sparklines = [
-    { pts: "2,28 14,22 26,24 38,16 50,14 62,8", col: "var(--color-sea)" },
-    { pts: "2,30 14,26 26,18 38,20 50,12 62,10", col: "var(--color-golden-hour)" },
-    { pts: "2,32 14,24 26,28 38,18 50,16 62,6", col: "var(--color-slate)" },
+    { pts: "2,34 18,28 34,30 50,20 66,17 82,10", col: "var(--color-sea)" },
+    { pts: "2,38 18,32 34,22 50,26 66,15 82,12", col: "var(--color-golden-hour)" },
+    { pts: "2,40 18,30 34,36 50,22 66,20 82,8", col: "var(--color-slate)" },
   ]
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
       <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate">
         3 Tableau dashboards · 3 business areas
       </p>
       <svg
         ref={ref}
-        viewBox="0 0 68 40"
+        viewBox="0 0 88 52"
         aria-hidden="true"
-        className="w-full max-w-[9rem]"
+        className="w-full max-w-[9rem] lg:max-w-[11rem]"
         preserveAspectRatio="xMidYMid meet"
       >
         <motion.g
@@ -261,7 +261,7 @@ function DashboardVisual() {
               points={s.pts}
               fill="none"
               stroke={s.col}
-              strokeWidth={2}
+              strokeWidth={2.5}
               strokeLinecap="round"
               strokeLinejoin="round"
               opacity={i === 0 ? 1 : 0.6}
@@ -269,7 +269,7 @@ function DashboardVisual() {
           ))}
         </motion.g>
         {/* Baseline */}
-        <line x1="2" y1="36" x2="66" y2="36" stroke="var(--color-shell)" strokeWidth={0.8} />
+        <line x1="2" y1="46" x2="86" y2="46" stroke="var(--color-shell)" strokeWidth={0.8} />
       </svg>
     </div>
   )
@@ -321,57 +321,148 @@ const CASE_STUDIES: CaseStudy[] = [
 ]
 
 // ---------------------------------------------------------------------------
-// Certifications
+// Data — Certifications (6 certs from spec; CFA removed)
+// Real certificate scans go in public/certs/ and set the `image` field below.
 // ---------------------------------------------------------------------------
 
-interface Certification {
-  name: string
-  detail: string
-  Icon: LucideIcon
+interface CertSkill {
+  label: string
 }
 
-const CERTIFICATIONS: Certification[] = [
+interface CertEntry {
+  /** Short issuer name shown as eyebrow */
+  issuer: string
+  /** Full certification title */
+  title: string
+  /** Learning-focused blurb (may contain inline React nodes for highlighted figures) */
+  blurb: React.ReactNode
+  /** Core skills chips */
+  skills: CertSkill[]
+  /**
+   * Optional path to a real certificate scan in public/certs/.
+   * Example: "/certs/nyif-risk-management.jpg"
+   * When provided, the frame renders <img object-contain> instead of the styled placeholder.
+   */
+  image?: string
+}
+
+const CERTIFICATIONS: CertEntry[] = [
   {
-    name: "CFA Level 1 Candidate (November 2026)",
-    detail:
-      "Studying quant methods · equity · fixed income · derivatives · ethics · portfolio management.",
-    Icon: GraduationCap,
+    issuer: "New York Institute of Finance",
+    title: "Risk Management Specialisation",
+    blurb: (
+      <>
+        Studied credit, market and operational risk and enterprise risk frameworks (Basel III, IFRS 9,
+        KRIs). Built a portfolio risk project estimating{" "}
+        <span className="font-semibold text-deep-sea">95% VaR</span> and Expected Shortfall across{" "}
+        <span className="font-semibold text-deep-sea">four</span> global equity indices.
+      </>
+    ),
+    skills: [
+      { label: "VaR" },
+      { label: "Expected Shortfall" },
+      { label: "Credit & Market Risk" },
+      { label: "Basel III / IFRS 9" },
+      { label: "KRIs" },
+      { label: "Portfolio Risk" },
+    ],
   },
   {
-    name: "Risk Management Specialisation · NYIF",
-    detail:
-      "95% VaR + Expected Shortfall · 4 equity indices · £5m+ portfolio risk scenarios.",
-    Icon: Award,
+    issuer: "University of Illinois Urbana-Champaign",
+    title: "Mergers & Acquisitions Specialisation",
+    blurb: (
+      <>
+        Learned M&A valuation, synergy analysis, accretion/dilution, capital structure and LBO
+        analysis. Forecast cash flows and ran NPV for acquirer and target across{" "}
+        <span className="font-semibold text-deep-sea">five</span> industries and{" "}
+        <span className="font-semibold text-deep-sea">two</span> PE transactions.
+      </>
+    ),
+    skills: [
+      { label: "M&A Valuation" },
+      { label: "Synergy Analysis" },
+      { label: "Accretion/Dilution" },
+      { label: "LBO Analysis" },
+      { label: "NPV" },
+      { label: "Capital Structure" },
+    ],
   },
   {
-    name: "M&A Specialisation · UIUC",
-    detail:
-      "6 courses · +12% return uplift modelled · 5 industries · 2 PE transactions analysed.",
-    Icon: FileText,
+    issuer: "Howard University",
+    title: "Business Problem-Solving Specialisation",
+    blurb: (
+      <>
+        Excel-based decision modelling. Built{" "}
+        <span className="font-semibold text-deep-sea">six</span> spreadsheet models on a{" "}
+        <span className="font-semibold text-deep-sea">£1.2m</span> portfolio, applying single and
+        multiple regression, correlation and sensitivity testing to turn outputs into recommendations.
+      </>
+    ),
+    skills: [
+      { label: "Regression" },
+      { label: "Correlation Analysis" },
+      { label: "Sensitivity Testing" },
+      { label: "Excel Modelling" },
+      { label: "Decision Analysis" },
+    ],
   },
   {
-    name: "Business Problem-Solving · Howard University",
-    detail:
-      "£1.2m portfolio · 6 decision models · regression and sensitivity analysis applied.",
-    Icon: Award,
+    issuer: "Meta",
+    title: "Meta Data Analyst Professional Certificate",
+    blurb: (
+      <>
+        Learned SQL, Python and pandas, the OSEMN workflow, hypothesis testing, regression and data
+        visualisation. Built <span className="font-semibold text-deep-sea">three</span> Tableau
+        dashboards and <span className="font-semibold text-deep-sea">two</span> pandas analyses end
+        to end.
+      </>
+    ),
+    skills: [
+      { label: "SQL" },
+      { label: "Python" },
+      { label: "pandas" },
+      { label: "Tableau" },
+      { label: "Hypothesis Testing" },
+      { label: "Data Visualisation" },
+      { label: "OSEMN" },
+    ],
   },
   {
-    name: "Meta Data Analyst Professional Certificate",
-    detail:
-      "SQL · Python · pandas · Tableau · 3 dashboards produced · 2 analyses completed.",
-    Icon: Database,
+    issuer: "HSBC & J.P. Morgan",
+    title: "Investment Banking Virtual Experience",
+    blurb: (
+      <>
+        Virtual Experience Programmes. Screened{" "}
+        <span className="font-semibold text-deep-sea">five</span> M&A targets, built a DCF for an{" "}
+        <span className="font-semibold text-deep-sea">£803m</span> beverage-sector deal and
+        stress-tested a{" "}
+        <span className="font-semibold text-deep-sea">110.8%</span> bid premium across scenarios.
+      </>
+    ),
+    skills: [
+      { label: "DCF Valuation" },
+      { label: "M&A Screening" },
+      { label: "Bid Premium Analysis" },
+      { label: "Scenario Analysis" },
+    ],
   },
   {
-    name: "IB Virtual Experience · HSBC & J.P. Morgan",
-    detail:
-      "£803m DCF built · 110.8% bid premium stress-tested · 5 M&A targets screened.",
-    Icon: TrendingUp,
-  },
-  {
-    name: "Bloomberg Market Concepts (BMC)",
-    detail:
-      "Economics · currencies · fixed income · equities fundamentals.",
-    Icon: BarChart3,
+    issuer: "Bloomberg",
+    title: "Bloomberg Market Concepts (BMC)",
+    blurb: (
+      <>
+        Grounding in Bloomberg terminal functions and market structure across economics, currencies,
+        fixed income and equities.
+      </>
+    ),
+    skills: [
+      { label: "Bloomberg Terminal" },
+      { label: "Market Structure" },
+      { label: "Economics" },
+      { label: "Fixed Income" },
+      { label: "Equities" },
+      { label: "FX" },
+    ],
   },
 ]
 
@@ -536,13 +627,19 @@ function FeaturedCaseStudy({ cs }: { cs: CaseStudy }) {
             <ReadCaseStudyLink title={cs.title} />
           </div>
 
-          {/* Right: tactical visual */}
+          {/* Right: tactical visual — bumped up on lg so it balances the text */}
           {cs.Visual ? (
             <div
               aria-hidden="true"
-              className="flex shrink-0 items-start justify-start lg:w-52 lg:justify-end"
+              className={cn(
+                "flex shrink-0 items-start justify-start",
+                // Mobile: natural flow; lg: fixed column, centred vertically
+                "lg:w-64 lg:items-center lg:justify-center",
+              )}
             >
-              <cs.Visual />
+              <div className="w-full max-w-[11rem] lg:max-w-none">
+                <cs.Visual />
+              </div>
             </div>
           ) : null}
         </div>
@@ -581,9 +678,9 @@ function GridCaseStudy({ cs, delay }: { cs: CaseStudy; delay: number }) {
       {/* Written context */}
       <p className="flex-1 text-sm leading-relaxed text-deep-sea/75">{cs.context}</p>
 
-      {/* Tactical visual */}
+      {/* Tactical visual — modest but visible in the grid */}
       {cs.Visual ? (
-        <div aria-hidden="true">
+        <div aria-hidden="true" className="w-full max-w-[9rem]">
           <cs.Visual />
         </div>
       ) : null}
@@ -616,186 +713,372 @@ function GridCaseStudy({ cs, delay }: { cs: CaseStudy; delay: number }) {
 }
 
 // ---------------------------------------------------------------------------
-// CertCardInner — shared inner layout for cert cards
+// CertificateFrame — on-brand styled placeholder; swaps to <img> when image prop set
+// Real scans: put JPG/PNG in public/certs/ and set the `image` field on a CERTIFICATIONS entry.
 // ---------------------------------------------------------------------------
 
-function CertCardInner({ cert }: { cert: Certification }) {
+function CertificateFrame({ cert }: { cert: CertEntry }) {
+  if (cert.image) {
+    return (
+      <img
+        src={cert.image}
+        alt={`${cert.title} certificate`}
+        className="h-full w-full object-contain"
+        loading="lazy"
+      />
+    )
+  }
+
   return (
-    <>
-      <div className="flex-shrink-0">
-        <div
-          className="flex h-10 w-10 items-center justify-center rounded-xl bg-sea/10"
-          aria-hidden="true"
-        >
-          <cert.Icon className="h-5 w-5 text-sea" />
-        </div>
+    <div className="relative flex h-full w-full flex-col items-center justify-center gap-3 overflow-hidden px-6 py-5">
+      {/* Subtle corner ornaments */}
+      <svg
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 h-full w-full"
+        viewBox="0 0 280 200"
+        preserveAspectRatio="none"
+        fill="none"
+      >
+        {/* Corner brackets — top-left */}
+        <path d="M12 32 L12 12 L32 12" stroke="var(--color-sea)" strokeWidth="1.5" strokeOpacity="0.35" />
+        {/* top-right */}
+        <path d="M248 12 L268 12 L268 32" stroke="var(--color-sea)" strokeWidth="1.5" strokeOpacity="0.35" />
+        {/* bottom-left */}
+        <path d="M12 168 L12 188 L32 188" stroke="var(--color-sea)" strokeWidth="1.5" strokeOpacity="0.35" />
+        {/* bottom-right */}
+        <path d="M248 188 L268 188 L268 168" stroke="var(--color-sea)" strokeWidth="1.5" strokeOpacity="0.35" />
+        {/* Inner border rectangle */}
+        <rect x="22" y="22" width="236" height="156" rx="3" stroke="var(--color-sea)" strokeWidth="0.6" strokeOpacity="0.18" />
+      </svg>
+
+      {/* Seal motif */}
+      <div
+        aria-hidden="true"
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: "50%",
+          border: "1.5px solid var(--color-golden-hour)",
+          opacity: 0.55,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        <svg viewBox="0 0 24 24" fill="none" width={18} height={18} aria-hidden="true">
+          <path
+            d="M12 2l2.09 6.41H21l-5.45 3.96 2.09 6.41L12 14.82l-5.64 4L8.45 12.37 3 8.41h6.91z"
+            fill="var(--color-golden-hour)"
+            opacity={0.7}
+          />
+        </svg>
       </div>
-      <div className="min-w-0">
-        <h3 className="text-sm font-semibold leading-snug text-deep-sea">
-          {cert.name}
-        </h3>
-        <p className="mt-1 break-words text-xs leading-relaxed text-deep-sea/70">
-          {cert.detail}
-        </p>
-      </div>
-    </>
+
+      {/* Issuer */}
+      <p className="text-center text-[9px] font-medium uppercase tracking-[0.22em] text-sea">
+        {cert.issuer}
+      </p>
+
+      {/* Title */}
+      <p className="text-center text-[11px] font-semibold leading-snug text-deep-sea">
+        {cert.title}
+      </p>
+
+      {/* "Certificate" watermark */}
+      <p className="text-[9px] uppercase tracking-[0.3em] text-slate/40">Certificate</p>
+    </div>
   )
 }
 
 // ---------------------------------------------------------------------------
-// CertificationsCarousel — horizontal scroll-snap carousel; no new deps
+// CertificateCoverflow — text left, 3D coverflow right
+// Adapted from CircularTestimonials pattern; no new deps, Tailwind + inline styles
 // ---------------------------------------------------------------------------
 
-function CertificationsCarousel() {
+/** Returns 3D transform for coverflow positions: prev / active / next */
+function getCoverflowStyle(
+  position: "prev" | "active" | "next",
+  reduce: boolean | null,
+): React.CSSProperties {
+  if (reduce) {
+    return position === "active"
+      ? { opacity: 1, pointerEvents: "auto" }
+      : { opacity: 0, pointerEvents: "none", position: "absolute" }
+  }
+
+  const BASE: React.CSSProperties = {
+    transition: "transform 420ms cubic-bezier(0.4, 0, 0.2, 1), opacity 420ms ease",
+    position: "absolute",
+    top: 0,
+    willChange: "transform, opacity",
+  }
+
+  if (position === "active") {
+    return {
+      ...BASE,
+      transform: "translateX(-50%) translateZ(0px) rotateY(0deg) scale(1)",
+      left: "50%",
+      opacity: 1,
+      zIndex: 10,
+      pointerEvents: "auto",
+    }
+  }
+  if (position === "prev") {
+    return {
+      ...BASE,
+      transform: "translateX(-50%) translateX(-68%) translateZ(-80px) rotateY(22deg) scale(0.82)",
+      left: "50%",
+      opacity: 0.55,
+      zIndex: 5,
+      pointerEvents: "none",
+    }
+  }
+  // next
+  return {
+    ...BASE,
+    transform: "translateX(-50%) translateX(68%) translateZ(-80px) rotateY(-22deg) scale(0.82)",
+    left: "50%",
+    opacity: 0.55,
+    zIndex: 5,
+    pointerEvents: "none",
+  }
+}
+
+function CertificateCoverflow() {
   const reduce = useReducedMotion()
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const [activeIndex, setActiveIndex] = useState(0)
-  const [atStart, setAtStart] = useState(true)
-  const [atEnd, setAtEnd] = useState(false)
+  const total = CERTIFICATIONS.length
+  const [active, setActive] = useState(0)
+  const [prevActive, setPrevActive] = useState<number | null>(null)
+  const regionRef = useRef<HTMLDivElement>(null)
 
-  const CARD_WIDTH_MOBILE = 280
-  const CARD_WIDTH_SM = 320
-  const GAP = 16 // gap-4
-
-  /** Measure the actual card width from the first child. */
-  const getCardWidth = useCallback((): number => {
-    const el = scrollRef.current
-    if (!el) return CARD_WIDTH_MOBILE
-    const first = el.firstElementChild as HTMLElement | null
-    if (!first) return CARD_WIDTH_MOBILE
-    return first.offsetWidth + GAP
-  }, [])
-
-  const updateState = useCallback(() => {
-    const el = scrollRef.current
-    if (!el) return
-    const cardW = getCardWidth()
-    const index = Math.round(el.scrollLeft / cardW)
-    setActiveIndex(index)
-    setAtStart(el.scrollLeft <= 4)
-    setAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 4)
-  }, [getCardWidth])
-
-  useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
-    el.addEventListener("scroll", updateState, { passive: true })
-    // Initialise on mount
-    updateState()
-    return () => el.removeEventListener("scroll", updateState)
-  }, [updateState])
-
-  const scrollToIndex = useCallback(
+  const goTo = useCallback(
     (index: number) => {
-      const el = scrollRef.current
-      if (!el) return
-      const cardW = getCardWidth()
-      el.scrollTo({ left: index * cardW, behavior: reduce ? "auto" : "smooth" })
+      setPrevActive(active)
+      setActive((index + total) % total)
     },
-    [getCardWidth, reduce],
+    [active, total],
   )
 
-  const prev = useCallback(() => {
-    const el = scrollRef.current
-    if (!el) return
-    const cardW = getCardWidth()
-    el.scrollBy({ left: -cardW, behavior: reduce ? "auto" : "smooth" })
-  }, [getCardWidth, reduce])
+  const goPrev = useCallback(() => goTo(active - 1), [active, goTo])
+  const goNext = useCallback(() => goTo(active + 1), [active, goTo])
 
-  const next = useCallback(() => {
-    const el = scrollRef.current
+  // Keyboard navigation
+  useEffect(() => {
+    const el = regionRef.current
     if (!el) return
-    const cardW = getCardWidth()
-    el.scrollBy({ left: cardW, behavior: reduce ? "auto" : "smooth" })
-  }, [getCardWidth, reduce])
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") { e.preventDefault(); goPrev() }
+      if (e.key === "ArrowRight") { e.preventDefault(); goNext() }
+    }
+    el.addEventListener("keydown", handler)
+    return () => el.removeEventListener("keydown", handler)
+  }, [goPrev, goNext])
+
+  const prevIndex = (active - 1 + total) % total
+  const nextIndex = (active + 1) % total
+
+  const activeCert = CERTIFICATIONS[active]
+
+  // Which of the 3 visible slots does each cert occupy?
+  const getPosition = (i: number): "prev" | "active" | "next" | null => {
+    if (i === active) return "active"
+    if (i === prevIndex) return "prev"
+    if (i === nextIndex) return "next"
+    return null
+  }
+
+  // The blurb key drives AnimatePresence re-mount on cert change
+  const blurbKey = active
 
   return (
-    <div>
-      {/* Scroll region — overflow-hidden on wrapper prevents page horizontal scroll */}
-      <div className="overflow-hidden">
-        <div
-          ref={scrollRef}
-          role="region"
-          aria-label="Certifications"
-          className={cn(
-            "flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory",
-            // Hide scrollbar cross-browser
-            "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-            // Bottom padding so box-shadows aren't clipped
-            "pb-2",
-          )}
-        >
-          {CERTIFICATIONS.map((cert) => (
-            <article
-              key={cert.name}
+    <div
+      ref={regionRef}
+      role="region"
+      aria-label="Certifications"
+      tabIndex={0}
+      className="overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-sea focus-visible:ring-offset-4 rounded-2xl"
+    >
+      {/* 2-col on md+; stacked on mobile */}
+      <div className="flex flex-col gap-10 md:flex-row md:items-center md:gap-12 lg:gap-16">
+
+        {/* ── LEFT: active cert text ── */}
+        <div className="flex min-w-0 flex-1 flex-col gap-5 md:max-w-sm lg:max-w-md">
+          {/* Eyebrow — issuer */}
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={`issuer-${blurbKey}`}
+              className="text-[10px] font-medium uppercase tracking-[0.22em] text-sea"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: reduce ? 0 : 0.25, ease: EASE }}
+            >
+              {activeCert.issuer}
+            </motion.p>
+          </AnimatePresence>
+
+          {/* Title */}
+          <AnimatePresence mode="wait">
+            <motion.h3
+              key={`title-${blurbKey}`}
+              className="text-lg font-semibold leading-snug tracking-tight text-deep-sea sm:text-xl"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: reduce ? 0 : 0.28, ease: EASE, delay: reduce ? 0 : 0.04 }}
+            >
+              {activeCert.title}
+            </motion.h3>
+          </AnimatePresence>
+
+          {/* Blurb — word blur-fade-in (like CircularTestimonials reference) */}
+          <AnimatePresence mode="wait">
+            {reduce ? (
+              <p
+                key={`blurb-static-${blurbKey}`}
+                className="text-sm leading-relaxed text-deep-sea/75"
+              >
+                {activeCert.blurb}
+              </p>
+            ) : (
+              <motion.p
+                key={`blurb-${blurbKey}`}
+                className="text-sm leading-relaxed text-deep-sea/75"
+                initial={{ opacity: 0, filter: "blur(8px)" }}
+                animate={{ opacity: 1, filter: "blur(0px)" }}
+                exit={{ opacity: 0, filter: "blur(6px)" }}
+                transition={{ duration: 0.38, ease: EASE, delay: 0.06 }}
+              >
+                {activeCert.blurb}
+              </motion.p>
+            )}
+          </AnimatePresence>
+
+          {/* Core-skills chips */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`skills-${blurbKey}`}
+              className="flex flex-wrap gap-2"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: reduce ? 0 : 0.3, ease: EASE, delay: reduce ? 0 : 0.1 }}
+            >
+              {activeCert.skills.map((s) => (
+                <span
+                  key={s.label}
+                  className={cn(
+                    "rounded-full border border-sea/25 bg-sea/8 px-2.5 py-0.5",
+                    "text-[10px] font-medium text-sea",
+                  )}
+                >
+                  {s.label}
+                </span>
+              ))}
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Prev / Next controls — inline with text on mobile */}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={goPrev}
+              aria-label="Previous certification"
               className={cn(
-                "snap-start shrink-0 w-[280px] sm:w-[320px]",
-                "flex gap-4 rounded-2xl border border-deep-sea/10 bg-linen p-5 shadow-sm",
-                "transition-shadow duration-300 hover:shadow-md",
+                "flex h-9 w-9 items-center justify-center rounded-full",
+                "bg-sea text-linen shadow-sm",
+                "transition-colors duration-200 hover:bg-sea-deep",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea focus-visible:ring-offset-2",
               )}
             >
-              <CertCardInner cert={cert} />
-            </article>
-          ))}
-        </div>
-      </div>
+              <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+            </button>
 
-      {/* Controls: arrows + dots */}
-      <div className="mt-5 flex items-center justify-center gap-4">
-        {/* Prev arrow */}
-        <button
-          type="button"
-          onClick={prev}
-          disabled={atStart}
-          aria-label="Previous certification"
-          className={cn(
-            "flex h-9 w-9 items-center justify-center rounded-full border border-deep-sea/15",
-            "bg-linen text-deep-sea shadow-sm",
-            "transition-opacity duration-200",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea focus-visible:ring-offset-2",
-            atStart ? "opacity-30 cursor-not-allowed" : "hover:bg-shell cursor-pointer",
-          )}
-        >
-          <ArrowLeft aria-hidden="true" className="h-4 w-4" />
-        </button>
+            {/* Dot indicators */}
+            <div
+              className="flex items-center gap-1.5"
+              role="tablist"
+              aria-label="Certification indicator"
+            >
+              {CERTIFICATIONS.map((c, i) => (
+                <button
+                  key={c.title}
+                  type="button"
+                  role="tab"
+                  aria-selected={i === active}
+                  aria-label={`Go to certification ${i + 1}: ${c.title}`}
+                  onClick={() => goTo(i)}
+                  className={cn(
+                    "rounded-full transition-all duration-200",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea focus-visible:ring-offset-2",
+                    i === active
+                      ? "h-2 w-5 bg-sea"
+                      : "h-2 w-2 cursor-pointer bg-deep-sea/20 hover:bg-deep-sea/40",
+                  )}
+                />
+              ))}
+            </div>
 
-        {/* Dot indicators */}
-        <div className="flex items-center gap-2" role="tablist" aria-label="Certification indicator">
-          {CERTIFICATIONS.map((cert, i) => (
             <button
-              key={cert.name}
               type="button"
-              role="tab"
-              aria-selected={i === activeIndex}
-              aria-label={`Go to certification ${i + 1}: ${cert.name}`}
-              onClick={() => scrollToIndex(i)}
+              onClick={goNext}
+              aria-label="Next certification"
               className={cn(
-                "h-2 rounded-full transition-all duration-200",
+                "flex h-9 w-9 items-center justify-center rounded-full",
+                "bg-sea text-linen shadow-sm",
+                "transition-colors duration-200 hover:bg-sea-deep",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea focus-visible:ring-offset-2",
-                i === activeIndex
-                  ? "w-5 bg-sea"
-                  : "w-2 bg-deep-sea/20 hover:bg-deep-sea/40 cursor-pointer",
               )}
-            />
-          ))}
+            >
+              <ArrowRight aria-hidden="true" className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
-        {/* Next arrow */}
-        <button
-          type="button"
-          onClick={next}
-          disabled={atEnd}
-          aria-label="Next certification"
-          className={cn(
-            "flex h-9 w-9 items-center justify-center rounded-full border border-deep-sea/15",
-            "bg-linen text-deep-sea shadow-sm",
-            "transition-opacity duration-200",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea focus-visible:ring-offset-2",
-            atEnd ? "opacity-30 cursor-not-allowed" : "hover:bg-shell cursor-pointer",
-          )}
+        {/* ── RIGHT: 3D coverflow of certificate frames ── */}
+        <div
+          aria-hidden="true"
+          className="relative w-full flex-shrink-0 md:w-[52%] lg:w-[48%]"
+          style={{ perspective: reduce ? "none" : "900px" }}
         >
-          <ArrowRight aria-hidden="true" className="h-4 w-4" />
-        </button>
+          {/* Height container — drives the aspect of the coverflow stage */}
+          <div
+            className="relative w-full"
+            style={{ paddingBottom: "62%" /* approx 1.4/1 aspect height for stage */ }}
+          >
+            {CERTIFICATIONS.map((cert, i) => {
+              const pos = getPosition(i)
+              if (!pos) return null
+
+              return (
+                <div
+                  key={cert.title}
+                  style={{
+                    ...getCoverflowStyle(pos, reduce),
+                    width: "64%",
+                    aspectRatio: "1.4 / 1",
+                  }}
+                >
+                  <div
+                    className={cn(
+                      "h-full w-full overflow-hidden rounded-xl",
+                      "border-2 border-sea/30 bg-linen shadow-md",
+                    )}
+                    style={{ aspectRatio: "1.4 / 1" }}
+                  >
+                    <CertificateFrame cert={cert} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Nav count label under coverflow */}
+          <p className="mt-3 text-center text-[10px] text-slate/60">
+            {active + 1} / {total}
+          </p>
+        </div>
       </div>
     </div>
   )
@@ -858,16 +1141,16 @@ export function Projects() {
         </div>
       </div>
 
-      {/* ── B: Certifications carousel ── */}
+      {/* ── B: Certifications coverflow ── */}
       <div className="mt-16">
         <Reveal delay={0.04}>
-          <h3 className="mb-6 text-xs font-medium uppercase tracking-[0.22em] text-deep-sea/50">
+          <h3 className="mb-8 text-xs font-medium uppercase tracking-[0.22em] text-deep-sea/50">
             Certifications
           </h3>
         </Reveal>
 
         <Reveal delay={0.08}>
-          <CertificationsCarousel />
+          <CertificateCoverflow />
         </Reveal>
       </div>
     </Section>

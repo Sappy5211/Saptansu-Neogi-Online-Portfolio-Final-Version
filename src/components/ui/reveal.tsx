@@ -1,7 +1,6 @@
 import { type ReactNode } from "react"
 import { motion, useReducedMotion } from "motion/react"
 
-import { EASE } from "@/lib/motion"
 import { cn } from "@/lib/utils"
 
 interface RevealProps {
@@ -12,8 +11,9 @@ interface RevealProps {
 }
 
 /**
- * Scroll-triggered fade-and-rise. Animates once when it enters the viewport.
- * Under prefers-reduced-motion it renders statically with no transform.
+ * Scroll-triggered entrance: rises up fast with a slight spring bounce when it
+ * enters the viewport (once). Under prefers-reduced-motion it renders statically
+ * with no transform.
  */
 export function Reveal({ children, className, delay = 0 }: RevealProps) {
   const reduce = useReducedMotion()
@@ -23,10 +23,10 @@ export function Reveal({ children, className, delay = 0 }: RevealProps) {
   return (
     <motion.div
       className={cn(className)}
-      initial={{ opacity: 0, y: 24 }}
+      initial={{ opacity: 0, y: 28 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-80px" }}
-      transition={{ duration: 0.6, ease: EASE, delay }}
+      viewport={{ once: true, margin: "-60px" }}
+      transition={{ type: "spring", stiffness: 260, damping: 18, mass: 0.5, delay }}
     >
       {children}
     </motion.div>

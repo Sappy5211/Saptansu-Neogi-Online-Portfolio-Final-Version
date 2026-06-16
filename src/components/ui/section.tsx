@@ -23,7 +23,7 @@ export function Section({
   return (
     <section
       id={id}
-      className={cn("scroll-mt-20 px-6 py-20 sm:py-28", className)}
+      className={cn("scroll-mt-20 px-6 py-14 sm:py-20", className)}
       {...rest}
     >
       <div className={cn("mx-auto w-full max-w-5xl", containerClassName)}>
