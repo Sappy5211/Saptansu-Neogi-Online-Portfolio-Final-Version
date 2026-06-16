@@ -290,6 +290,7 @@ const CERTIFICATIONS: CertEntry[] = [
   {
     issuer: "New York Institute of Finance",
     title: "Risk Management Specialisation",
+    image: "/certs/risk-management.jpg",
     blurb: (
       <>
         Studied credit, market and operational risk and enterprise risk frameworks (Basel III, IFRS 9,
@@ -310,6 +311,7 @@ const CERTIFICATIONS: CertEntry[] = [
   {
     issuer: "University of Illinois Urbana-Champaign",
     title: "Mergers & Acquisitions Specialisation",
+    image: "/certs/ma-specialisation.jpg",
     blurb: (
       <>
         Learned M&A valuation, synergy analysis, accretion/dilution, capital structure and LBO
@@ -330,6 +332,7 @@ const CERTIFICATIONS: CertEntry[] = [
   {
     issuer: "Howard University",
     title: "Business Problem-Solving Specialisation",
+    image: "/certs/howard-problem-solving.jpg",
     blurb: (
       <>
         Excel-based decision modelling. Built{" "}
@@ -347,22 +350,46 @@ const CERTIFICATIONS: CertEntry[] = [
     ],
   },
   {
-    issuer: "HSBC & J.P. Morgan",
-    title: "Investment Banking Virtual Experience",
+    issuer: "J.P. Morgan",
+    title: "Investment Banking Job Simulation",
+    image: "/certs/jpmorgan-ib.jpg",
     blurb: (
       <>
-        Virtual Experience Programmes. Screened{" "}
-        <span className="font-semibold text-deep-sea">five</span> M&A targets, built a DCF for an{" "}
-        <span className="font-semibold text-deep-sea">£803 m</span> beverage-sector deal and
+        Completed J.P. Morgan&apos;s investment banking job simulation. Screened{" "}
+        <span className="font-semibold text-deep-sea">five</span> M&A targets, ran the financial
+        analysis including a DCF for an{" "}
+        <span className="font-semibold text-deep-sea">£803 m</span> beverage-sector deal, and
         stress-tested a{" "}
-        <span className="font-semibold text-deep-sea">110.8%</span> bid premium across scenarios.
+        <span className="font-semibold text-deep-sea">110.8%</span> bid premium before making an
+        investment recommendation.
       </>
     ),
     skills: [
       { label: "DCF Valuation" },
       { label: "M&A Screening" },
+      { label: "Auction Process" },
       { label: "Bid Premium Analysis" },
-      { label: "Scenario Analysis" },
+      { label: "Investment Recommendation" },
+    ],
+  },
+  {
+    issuer: "HSBC",
+    title: "Global Banking & Markets Job Simulation",
+    image: "/certs/hsbc-gbm.jpg",
+    blurb: (
+      <>
+        Completed HSBC&apos;s Global Banking and Markets job simulation. Across{" "}
+        <span className="font-semibold text-deep-sea">six</span> practical tasks, identified M&A
+        targets for an offshore expansion, produced a debt market update, analysed a debt financing
+        opportunity and matched trading ideas and products to a client.
+      </>
+    ),
+    skills: [
+      { label: "M&A Screening" },
+      { label: "Debt Capital Markets" },
+      { label: "Trade Ideas" },
+      { label: "Client Solutions" },
+      { label: "Markets" },
     ],
   },
 ]
