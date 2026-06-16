@@ -1,17 +1,24 @@
 /**
- * experience.tsx — Work Experience section.
+ * experience.tsx — Work Experience section (v2).
  *
- * Vertical accordion: one open at a time, first open by default.
- * Each panel reveals a bento grid of SVG stat cards (stat-visuals.tsx)
- * then remaining detail bullets.
+ * TEXT LEADS. Each open card shows: one-line scope, then 3–5 readable bullets
+ * with sea-dot markers and generous leading, then a compact supporting stat
+ * strip (secondary), then a CORE SKILLS GAINED pill-tag row.
  *
- * Motion: motion/react AnimatePresence; height 0→auto + opacity + y-slide.
- * Reduced-motion: instant show/hide, no transforms.
- * A11y: real <button> with aria-expanded/aria-controls, region role,
- *        visible focus rings, decorative icons aria-hidden.
+ * Interaction:
+ *  - Hover card header  → expands as preview; mouse-leave collapses.
+ *  - Click              → PINS open (persists after mouse-leave).
+ *  - Click pinned card  → unpins (collapses).
+ *  - Multiple cards may be open at once (independent state).
+ *  - State: pinned: Set<id> + hovered: id | null
+ *            isOpen = pinned.has(id) || hovered === id
+ *
+ * Reduced-motion: hover-preview disabled; click-only toggle; instant show/hide.
+ * A11y: real <button aria-expanded aria-controls>; Enter/Space toggles pin;
+ *        focus ring ring-sea; decorative icons aria-hidden.
  */
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { AnimatePresence, motion, useReducedMotion } from "motion/react"
 import {
   Building2,
@@ -45,44 +52,40 @@ import { cn } from "@/lib/utils"
 // ---------------------------------------------------------------------------
 
 interface StatCard {
-  /** Which stat-visual component to render */
   type: "squiggle" | "ring" | "trend" | "badge"
   value: string
   label: string
-  /** StatSquiggle only */
   accent?: "sea" | "golden"
-  /** StatRing only */
   percent?: number
-  /** StatTrend only */
   direction?: "up" | "down"
-  /** StatBadge only */
   icon?: React.ComponentType<{ className?: string }>
-  /** Extra Tailwind classes — use for col-span overrides */
   className?: string
 }
 
 interface Role {
   id: string
-  /** Lucide icon component for the accordion header square */
   Icon: React.ComponentType<{ className?: string }>
   company: string
   title: string
   dates: string
-  /** Short chip text shown on ≥sm screens in the header */
+  /** Compact headline-metric chip shown in the header at ≥sm. */
   chip: string
-  /** Optional badge label (Part-time, Volunteer, Society) */
+  /** Optional label (Volunteer, Part-time, Society). */
   badge?: string
-  /** One-sentence scope line rendered inside the open panel */
+  /** One-sentence scope line rendered at the top of the open panel. */
   scope: string
-  /** Ordered bento cards — first may span cols via className */
-  stats: StatCard[]
-  /** Detail bullets rendered beneath the bento grid */
+  /** Verbatim bullets from spec — the MEAT of the card. */
   bullets: string[]
+  /** 3–4 supporting stat visuals — secondary, compact, below bullets. */
+  stats: StatCard[]
+  /** Core skills gained pill tags. */
+  skills: string[]
 }
 
 // ---------------------------------------------------------------------------
-// Role data — all copy from master profile / EXPERIENCE_REDESIGN.md spec
-// UK English; no em dashes; no invented numbers; "back-tested" caveats kept.
+// Role data — verbatim from SECTIONS_V2 §AGENT A.
+// UK English; no em dashes; no invented numbers; back-tested caveats kept;
+// "contributed/supported" framing for Oxbridge.
 // ---------------------------------------------------------------------------
 
 const ROLES: Role[] = [
@@ -94,119 +97,90 @@ const ROLES: Role[] = [
     dates: "Jul 2025 – Aug 2025",
     chip: "12% cycle cut",
     scope:
-      "Month-end reporting, data quality and a Copilot adoption proposal inside the finance division of the UK's largest building society.",
-    stats: [
-      {
-        type: "squiggle",
-        value: "12%",
-        label: "Reporting cycle cut",
-        accent: "golden",
-      },
-      {
-        type: "ring",
-        value: "97%",
-        label: "Data completeness",
-        percent: 97,
-      },
-      {
-        type: "badge",
-        value: "60+",
-        label: "Board-pack entries corrected",
-        icon: ClipboardCheck,
-      },
-      {
-        type: "badge",
-        value: "400+",
-        label: "Records cleaned",
-        icon: Database,
-      },
-    ],
+      "Live finance-division internship across month-end reporting, data governance, AI adoption and business problem-solving.",
     bullets: [
-      "Led a 4-person team across 5 stakeholder groups on a live business case, rated best in the cohort by leadership.",
-      "Scoped a Microsoft Copilot adoption plan, mapping governance controls for risk and compliance, and presented it to senior leadership.",
-      "Cut rework about 20% over three cycles with a self-checking Excel template.",
+      "Consolidated fragmented month-end finance data into one refreshable Power BI and advanced Excel model, removing repeated manual rebuilds, cutting the reporting cycle 12% and improving director-pack precision.",
+      "Cleaned 400+ finance records and filled 100+ missing fields, lifting data completeness to 97% and making every director-pack figure traceable to source.",
+      "Built a self-checking Excel control template that flagged entry errors before sign-off, correcting 60+ board-pack entries and cutting rework about 20% across three reporting cycles.",
+      "Led a 4-person team across 5 stakeholder groups on a live business case, converting operational constraints into a finance-led recommendation rated best in the cohort by leadership.",
+      "Scoped a Microsoft Copilot adoption plan for the finance division, mapping use cases and governance controls for risk, compliance and approval, and presented it to senior leadership.",
+    ],
+    stats: [
+      { type: "squiggle", value: "12%",  label: "Reporting cycle cut", accent: "golden" },
+      { type: "ring",     value: "97%",  label: "Data completeness",   percent: 97 },
+      { type: "badge",    value: "60+",  label: "Board-pack fixes",    icon: ClipboardCheck },
+      { type: "badge",    value: "400+", label: "Records cleaned",     icon: Database },
+    ],
+    skills: [
+      "Power BI",
+      "Power Query",
+      "Advanced Excel",
+      "Month-end Reporting",
+      "Data Governance",
+      "Board-pack Controls",
+      "AI Governance",
     ],
   },
   {
     id: "yaf",
     Icon: Megaphone,
     company: "Young Asians in Finance",
-    title: "Operations Specialist",
+    title: "Operations Specialist (Volunteer)",
     dates: "Sep 2025 – Present",
     chip: "25% CTR uplift",
     badge: "Part-time",
     scope:
-      "KPI-led content, events and digital growth for an early-career finance community.",
-    stats: [
-      {
-        type: "trend",
-        value: "25%",
-        label: "CTR uplift",
-        direction: "up",
-      },
-      {
-        type: "ring",
-        value: "99%",
-        label: "On-time delivery",
-        percent: 99,
-      },
-      {
-        type: "badge",
-        value: "35%",
-        label: "Engagement growth",
-        icon: TrendingUp,
-      },
-      {
-        type: "badge",
-        value: "28%",
-        label: "Registration lift",
-        icon: Ticket,
-      },
-    ],
+      "KPI-led communications, event operations and stakeholder coordination for a finance-focused professional community.",
     bullets: [
-      "Ran LinkedIn and Instagram content against a weekly KPI framework, iterating each cycle.",
-      "Set up a shared content and asset workflow, cutting turnaround about 30%.",
+      "Built a weekly KPI framework and campaign database, using performance data to refine content, messaging and timing and raise click-through rate 25%.",
+      "Ran a multi-channel LinkedIn and Instagram programme, growing engagement 35% across early-career finance audiences.",
+      "Coordinated 6+ finance and investment-banking events end to end, managing materials, stakeholders and attendee workflows to lift registrations 28%.",
+      "Standardised content, operations and event workflows, improving turnaround about 30% and holding 99% on-time delivery across assets and materials.",
+    ],
+    stats: [
+      { type: "trend", value: "25%", label: "CTR uplift",       direction: "up"  },
+      { type: "ring",  value: "99%", label: "On-time delivery", percent: 99      },
+      { type: "badge", value: "35%", label: "Engagement",       icon: TrendingUp },
+      { type: "badge", value: "28%", label: "Registrations",    icon: Ticket     },
+    ],
+    skills: [
+      "KPI Reporting",
+      "Digital Analytics",
+      "Campaign Governance",
+      "Event Operations",
+      "Stakeholder Communication",
+      "Community Growth",
     ],
   },
   {
     id: "oxbridge",
     Icon: Search,
     company: "Oxbridge Analytics & Consultants",
-    title: "Research and Strategy Assistant",
+    title: "Research and Strategy Assistant (Volunteer)",
     dates: "Jun 2024 – Jul 2024",
     chip: "10+ workstreams",
     badge: "Volunteer",
     scope:
-      "Market, ESG and operational research contributing to client workstreams at a boutique consultancy.",
-    stats: [
-      {
-        type: "badge",
-        value: "10+",
-        label: "Client workstreams",
-        icon: Workflow,
-      },
-      {
-        type: "badge",
-        value: "1,500+",
-        label: "Data points structured",
-        icon: Database,
-      },
-      {
-        type: "trend",
-        value: "~20%",
-        label: "Emissions reduction (workstream)",
-        direction: "down",
-      },
-      {
-        type: "badge",
-        value: "12+",
-        label: "Research packs",
-        icon: FileText,
-      },
-    ],
+      "Consulting-style research across market intelligence, ESG analytics, supply-chain strategy and client decision support.",
     bullets: [
-      "Built supply-chain and sustainability analysis feeding a decarbonisation workstream.",
-      "Turned raw analysis into ESG and commercial recommendations across 6+ workstreams.",
+      "Contributed market, ESG and operational research across 10+ client workstreams, turning scattered inputs into stakeholder-ready briefs and commercial recommendations.",
+      "Structured 1,500+ raw research inputs into forecasting-ready datasets, improving clarity for planning, scenario analysis and client-facing recommendations.",
+      "Built supply-chain and sustainability analysis supporting a decarbonisation workstream linked to a ~20% carbon-emissions reduction.",
+      "Produced 12+ research packs across 6+ workstreams, converting raw analysis into practical ESG and commercial actions.",
+    ],
+    stats: [
+      { type: "badge", value: "10+",    label: "Client workstreams",     icon: Workflow },
+      { type: "badge", value: "1,500+", label: "Data points",            icon: Database },
+      { type: "trend", value: "~20%",   label: "Emissions (workstream)", direction: "down" },
+      { type: "badge", value: "12+",    label: "Research packs",         icon: FileText },
+    ],
+    skills: [
+      "Market Research",
+      "ESG Analytics",
+      "Strategic Intelligence",
+      "Executive Briefs",
+      "Supply-chain Analytics",
+      "Scenario Analysis",
     ],
   },
   {
@@ -218,36 +192,27 @@ const ROLES: Role[] = [
     chip: "+25% Sharpe (back-tested)",
     badge: "Society",
     scope:
-      "Designed and back-tested Python equity strategies across traditional and alternative data in a student-led quant team.",
-    stats: [
-      {
-        type: "trend",
-        value: "+25%",
-        label: "Sharpe ratio (back-tested)",
-        direction: "up",
-      },
-      {
-        type: "trend",
-        value: "-7%",
-        label: "Max drawdown (back-tested)",
-        direction: "down",
-      },
-      {
-        type: "badge",
-        value: "3",
-        label: "Python strategies / 36mo",
-        icon: Code2,
-      },
-      {
-        type: "badge",
-        value: "8+",
-        label: "Equity notes (incl. Tesla)",
-        icon: NotebookPen,
-      },
-    ],
+      "Quantitative research across Python strategy design, back-testing, equity screening and investment reporting.",
     bullets: [
-      "Tuned entry, exit and position-sizing rules to improve risk-adjusted return; figures are back-tested only.",
-      "Presented and defended the strategies to a five-person quant team.",
+      "Designed and back-tested 3 Python (pandas) trading strategies across 36 months of traditional and alternative data, testing whether momentum and volatility signals held across market regimes.",
+      "Tuned entry, exit and position-sizing rules to improve risk-adjusted return, lifting the back-tested Sharpe ratio 25% and cutting maximum drawdown 7% under stress scenarios.",
+      "Produced 8+ equity research notes on high-conviction names including Tesla, translating catalysts, valuation drivers and risks into a clear buy, hold or sell view.",
+      "Presented and defended 4 strategy diagnostics and Python back-test outputs to a 5-person quant team, sharpening technical communication and investment judgement.",
+    ],
+    stats: [
+      { type: "trend", value: "+25%", label: "Sharpe (back-tested)",   direction: "up"   },
+      { type: "trend", value: "-7%",  label: "Drawdown (back-tested)", direction: "down" },
+      { type: "badge", value: "3",    label: "Python strategies",       icon: Code2       },
+      { type: "badge", value: "8+",   label: "Equity notes",            icon: NotebookPen },
+    ],
+    skills: [
+      "Python",
+      "pandas",
+      "Back-testing",
+      "Equity Research",
+      "Risk-adjusted Return",
+      "Sharpe Ratio",
+      "Alternative Data",
     ],
   },
 ]
@@ -260,49 +225,17 @@ function RenderStatCard({ card }: { card: StatCard }) {
   const { type, value, label, accent, percent, direction, icon: Icon, className } = card
 
   if (type === "squiggle") {
-    return (
-      <StatSquiggle
-        value={value}
-        label={label}
-        accent={accent}
-        className={className}
-      />
-    )
+    return <StatSquiggle value={value} label={label} accent={accent} className={className} />
   }
-
   if (type === "ring" && percent !== undefined) {
-    return (
-      <StatRing
-        value={value}
-        label={label}
-        percent={percent}
-        className={className}
-      />
-    )
+    return <StatRing value={value} label={label} percent={percent} className={className} />
   }
-
   if (type === "trend" && direction !== undefined) {
-    return (
-      <StatTrend
-        value={value}
-        label={label}
-        direction={direction}
-        className={className}
-      />
-    )
+    return <StatTrend value={value} label={label} direction={direction} className={className} />
   }
-
   if (type === "badge" && Icon !== undefined) {
-    return (
-      <StatBadge
-        value={value}
-        label={label}
-        icon={Icon}
-        className={className}
-      />
-    )
+    return <StatBadge value={value} label={label} icon={Icon} className={className} />
   }
-
   return null
 }
 
@@ -312,9 +245,10 @@ function RenderStatCard({ card }: { card: StatCard }) {
 
 function BulletItem({ text }: { text: string }) {
   return (
-    <li className="flex gap-2.5 text-base leading-relaxed text-deep-sea/75">
+    <li className="flex gap-3 text-base leading-relaxed text-deep-sea/75">
+      {/* Sea-dot marker */}
       <span
-        className="mt-[0.45em] h-1.5 w-1.5 shrink-0 rounded-full bg-sea"
+        className="mt-[0.55em] h-1.5 w-1.5 shrink-0 rounded-full bg-sea"
         aria-hidden="true"
       />
       <span>{text}</span>
@@ -323,17 +257,93 @@ function BulletItem({ text }: { text: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// AccordionItem
+// SkillTag
 // ---------------------------------------------------------------------------
 
-interface AccordionItemProps {
-  role: Role
-  isOpen: boolean
-  onToggle: () => void
-  reduce: boolean
+function SkillTag({ label }: { label: string }) {
+  return (
+    <span className="rounded-full border border-deep-sea/15 bg-linen px-3 py-1 text-xs text-deep-sea/75">
+      {label}
+    </span>
+  )
 }
 
-function AccordionItem({ role, isOpen, onToggle, reduce }: AccordionItemProps) {
+// ---------------------------------------------------------------------------
+// PanelContent — scope + bullets (MEAT) + stat strip + skills
+// ---------------------------------------------------------------------------
+
+function PanelContent({ role }: { role: Role }) {
+  return (
+    <div className="px-5 pb-6 pt-1 sm:px-6 sm:pb-8">
+      {/* Divider */}
+      <div className="mb-4 h-px bg-deep-sea/8" aria-hidden="true" />
+
+      {/* 1. One-line scope */}
+      <p className="mb-5 text-sm leading-relaxed text-deep-sea/70 sm:text-base">
+        {role.scope}
+      </p>
+
+      {/* 2. Bullets — THE MEAT */}
+      <ul
+        className="mb-6 space-y-3"
+        aria-label={`Highlights for ${role.company}`}
+      >
+        {role.bullets.map((bullet, i) => (
+          <BulletItem key={i} text={bullet} />
+        ))}
+      </ul>
+
+      {/* 3. Supporting stat strip — compact, secondary, wraps on mobile */}
+      <div
+        className="mb-6 grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3"
+        aria-label="Key metrics"
+      >
+        {role.stats.map((card, i) => (
+          <RenderStatCard key={i} card={card} />
+        ))}
+      </div>
+
+      {/* 4. Core skills gained */}
+      <div>
+        <p className="mb-2 text-xs font-medium uppercase tracking-[0.18em] text-slate">
+          Core skills gained
+        </p>
+        <ul
+          className="flex flex-wrap gap-1.5"
+          aria-label={`Skills gained at ${role.company}`}
+        >
+          {role.skills.map((skill) => (
+            <li key={skill}>
+              <SkillTag label={skill} />
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// ExperienceCard — single card with hover-preview + click-pin interaction
+// ---------------------------------------------------------------------------
+
+interface ExperienceCardProps {
+  role: Role
+  isOpen: boolean
+  reduce: boolean
+  onMouseEnter: () => void
+  onMouseLeave: () => void
+  onTogglePin: () => void
+}
+
+function ExperienceCard({
+  role,
+  isOpen,
+  reduce,
+  onMouseEnter,
+  onMouseLeave,
+  onTogglePin,
+}: ExperienceCardProps) {
   const panelId = `experience-panel-${role.id}`
   const headerId = `experience-header-${role.id}`
   const { Icon } = role
@@ -341,12 +351,12 @@ function AccordionItem({ role, isOpen, onToggle, reduce }: AccordionItemProps) {
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-2xl border border-deep-sea/10 bg-linen",
+        "relative overflow-hidden rounded-2xl border bg-linen",
         "transition-[border-color,box-shadow] duration-300",
-        isOpen && "border-sea/30 shadow-sm",
+        isOpen ? "border-sea/30 shadow-sm" : "border-deep-sea/10",
       )}
     >
-      {/* Left accent bar — visible on open item */}
+      {/* Left accent bar — visible when open */}
       <div
         className={cn(
           "absolute inset-y-0 left-0 w-[3px] rounded-l-2xl transition-opacity duration-300",
@@ -361,7 +371,9 @@ function AccordionItem({ role, isOpen, onToggle, reduce }: AccordionItemProps) {
         type="button"
         aria-expanded={isOpen}
         aria-controls={panelId}
-        onClick={onToggle}
+        onClick={onTogglePin}
+        onMouseEnter={reduce ? undefined : onMouseEnter}
+        onMouseLeave={reduce ? undefined : onMouseLeave}
         className={cn(
           "flex w-full min-w-0 items-center gap-3 px-5 py-4 text-left sm:gap-4 sm:px-6 sm:py-5",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea focus-visible:ring-inset",
@@ -377,7 +389,7 @@ function AccordionItem({ role, isOpen, onToggle, reduce }: AccordionItemProps) {
           <Icon className="h-5 w-5 text-sea" />
         </span>
 
-        {/* Company + role/dates */}
+        {/* Company + role + dates */}
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
             <span className="min-w-0 truncate text-sm font-semibold text-deep-sea sm:text-base">
@@ -390,34 +402,30 @@ function AccordionItem({ role, isOpen, onToggle, reduce }: AccordionItemProps) {
             )}
           </div>
           <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
-            <span className="truncate text-xs text-slate sm:text-sm">
+            <span className="min-w-0 truncate text-xs text-slate sm:text-sm">
               {role.title}
             </span>
-            <span className="text-xs text-slate/60" aria-hidden="true">·</span>
-            <span className="shrink-0 text-xs text-slate sm:text-sm">
+            <span className="text-xs text-slate/50" aria-hidden="true">·</span>
+            <span className="shrink-0 whitespace-nowrap text-xs text-slate sm:text-sm">
               {role.dates}
             </span>
           </div>
         </div>
 
-        {/* Headline-metric chip — hidden on xs, visible sm+ */}
+        {/* Headline-metric chip — hidden xs, visible sm+ */}
         <span
-          className={cn(
-            "hidden shrink-0 rounded-full px-2.5 py-1 text-xs font-medium sm:inline-block",
-            "border border-golden-hour/30 bg-golden-hour/10 text-golden-hour",
-          )}
+          className="hidden shrink-0 rounded-full border border-golden-hour/30 bg-golden-hour/10 px-2.5 py-1 text-xs font-medium text-golden-hour sm:inline-block"
           aria-hidden="true"
         >
           {role.chip}
         </span>
 
-        {/* Chevron */}
+        {/* Rotating chevron */}
         <motion.span
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={reduce ? { duration: 0 } : { duration: 0.3, ease: EASE }}
           aria-hidden="true"
-          className="ml-1 shrink-0"
-          style={{ display: "inline-flex" }}
+          className="ml-1 inline-flex shrink-0"
         >
           <ChevronDown className="h-5 w-5 text-slate" />
         </motion.span>
@@ -425,13 +433,9 @@ function AccordionItem({ role, isOpen, onToggle, reduce }: AccordionItemProps) {
 
       {/* ── Panel ── */}
       {reduce ? (
-        // Reduced-motion: instant show/hide, no transforms
+        // Reduced-motion: instant mount/unmount, no animation
         isOpen ? (
-          <div
-            id={panelId}
-            role="region"
-            aria-labelledby={headerId}
-          >
+          <div id={panelId} role="region" aria-labelledby={headerId}>
             <PanelContent role={role} />
           </div>
         ) : null
@@ -446,10 +450,17 @@ function AccordionItem({ role, isOpen, onToggle, reduce }: AccordionItemProps) {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.35, ease: EASE }}
+              transition={{ duration: 0.32, ease: EASE }}
               style={{ overflow: "hidden" }}
             >
-              <PanelContent role={role} animated />
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.28, ease: EASE, delay: 0.06 }}
+              >
+                <PanelContent role={role} />
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -459,72 +470,35 @@ function AccordionItem({ role, isOpen, onToggle, reduce }: AccordionItemProps) {
 }
 
 // ---------------------------------------------------------------------------
-// PanelContent
-// Scope line + bento grid + bullet list.
-// ---------------------------------------------------------------------------
-
-function PanelContent({
-  role,
-  animated = false,
-}: {
-  role: Role
-  animated?: boolean
-}) {
-  const contentProps = animated
-    ? {
-        initial: { opacity: 0, y: 8 },
-        animate: { opacity: 1, y: 0 },
-        transition: { duration: 0.3, ease: EASE, delay: 0.05 },
-      }
-    : {}
-
-  const Wrapper = animated ? motion.div : "div"
-
-  return (
-    // @ts-expect-error — motion.div and div share compatible base props here
-    <Wrapper
-      className="px-5 pb-6 pt-1 sm:px-6 sm:pb-8"
-      {...contentProps}
-    >
-      {/* Divider */}
-      <div className="mb-4 h-px bg-deep-sea/8" />
-
-      {/* Scope line */}
-      <p className="mb-5 text-sm leading-relaxed text-deep-sea/75 sm:text-base">
-        {role.scope}
-      </p>
-
-      {/* Bento grid of stat cards */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        {role.stats.map((card, i) => (
-          <RenderStatCard key={i} card={card} />
-        ))}
-      </div>
-
-      {/* Detail bullets */}
-      {role.bullets.length > 0 && (
-        <ul className="mt-5 space-y-2.5">
-          {role.bullets.map((bullet, i) => (
-            <BulletItem key={i} text={bullet} />
-          ))}
-        </ul>
-      )}
-    </Wrapper>
-  )
-}
-
-// ---------------------------------------------------------------------------
 // Public export
 // ---------------------------------------------------------------------------
 
 export function Experience() {
   const reduce = useReducedMotion() ?? false
-  const [openId, setOpenId] = useState<string>(ROLES[0].id)
 
-  function toggle(id: string) {
-    // One open at a time; clicking the open one keeps it open (spec: "one open at a time")
-    setOpenId(id)
-  }
+  // Multi-open state: pinned Set + hovered id
+  const [pinned, setPinned] = useState<Set<string>>(new Set())
+  const [hovered, setHovered] = useState<string | null>(null)
+
+  const handleMouseEnter = useCallback((id: string) => {
+    setHovered(id)
+  }, [])
+
+  const handleMouseLeave = useCallback(() => {
+    setHovered(null)
+  }, [])
+
+  const handleTogglePin = useCallback((id: string) => {
+    setPinned((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }, [])
 
   return (
     <Section
@@ -532,7 +506,7 @@ export function Experience() {
       aria-labelledby="where-i-ve-done-the-work"
       className="bg-sand"
     >
-      {/* Heading */}
+      {/* Section heading */}
       <Reveal>
         <SectionHeading
           eyebrow="Experience"
@@ -541,17 +515,27 @@ export function Experience() {
         />
       </Reveal>
 
-      {/* Accordion */}
-      <div className="mt-10 flex flex-col gap-3 sm:mt-14 sm:gap-4">
-        {ROLES.map((role) => (
-          <AccordionItem
-            key={role.id}
-            role={role}
-            isOpen={openId === role.id}
-            onToggle={() => toggle(role.id)}
-            reduce={reduce}
-          />
-        ))}
+      {/* Card list */}
+      <div
+        className="mt-10 flex flex-col gap-3 sm:mt-14 sm:gap-4"
+        role="list"
+        aria-label="Experience cards"
+      >
+        {ROLES.map((role) => {
+          const isOpen = pinned.has(role.id) || hovered === role.id
+          return (
+            <div key={role.id} role="listitem">
+              <ExperienceCard
+                role={role}
+                isOpen={isOpen}
+                reduce={reduce}
+                onMouseEnter={() => handleMouseEnter(role.id)}
+                onMouseLeave={handleMouseLeave}
+                onTogglePin={() => handleTogglePin(role.id)}
+              />
+            </div>
+          )
+        })}
       </div>
     </Section>
   )
