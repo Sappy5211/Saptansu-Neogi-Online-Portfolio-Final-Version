@@ -697,20 +697,20 @@ function StaticCardInner({ cs }: { cs: CaseStudy }) {
 function CardContent({ cs }: { cs: CaseStudy }) {
   return (
     <>
-      {/* SVG visual — clearly visible, layered across the upper card area */}
+      {/* SVG visual — subtle on-brand watermark sitting BEHIND the scrim + text */}
       {cs.Visual ? (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-5 top-6 z-[2]"
+          className="pointer-events-none absolute inset-x-6 top-8 z-0 opacity-[0.16]"
         >
           <cs.Visual />
         </div>
       ) : null}
 
-      {/* Gradient scrim: light over the visual, dark at the base for text contrast */}
+      {/* Dark gradient scrim over the watermark so all text stays fully legible */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-deep-sea/10 via-transparent to-deep-sea/85"
+        className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-b from-deep-sea/55 via-deep-sea/45 to-deep-sea/80"
       />
 
       {/* Bottom overlay: label + title + subtitle + context + chips + button */}
