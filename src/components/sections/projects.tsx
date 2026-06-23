@@ -15,7 +15,6 @@
 import {
   ArrowLeft,
   ArrowRight,
-  ArrowUpRight,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { useRef, useEffect, useCallback, useState } from "react"
@@ -46,6 +45,7 @@ interface CaseMetric {
 }
 
 interface CaseStudy {
+  slug: string
   label: string
   title: string
   subtitle: string
@@ -64,206 +64,337 @@ interface CaseStudy {
 // Inline SVG visuals (on-brand, no stock photos) — rendered on the gradient bg
 // ---------------------------------------------------------------------------
 
-/** VoltaGrid: a simple bar chart showing 3 demand scenario return bars */
+/** VoltaGrid: grouped bar chart — three MOIC scenario bars, clearly visible */
 function VoltaGridVisual() {
   const ref = useRef<SVGSVGElement>(null)
   const reduce = useReducedMotion()
   const inView = useInView(ref as React.RefObject<Element>, { once: true, margin: "-60px" })
 
+  // Bars: Downside / Base / Upside  (MOIC values from spec)
   const bars = [
-    { x: 14, h: 68, label: "Base", value: "22%", fill: "rgba(255,255,255,0.55)" },
-    { x: 54, h: 90, label: "Up", value: "28%", fill: "rgba(217,164,65,0.65)" },
-    { x: 94, h: 46, label: "Down", value: "14%", fill: "rgba(255,255,255,0.35)" },
+    { label: "Down", value: "1.62x", h: 62,  fill: "var(--color-sky-mist)", opacity: 0.88 },
+    { label: "Base", value: "2.20x", h: 100, fill: "var(--color-golden-hour)", opacity: 1.0 },
+    { label: "Up",   value: "2.68x", h: 126, fill: "var(--color-linen)",      opacity: 0.92 },
   ]
+  const BAR_W = 46
+  const GAP = 14
+  const BASELINE = 148
+  const startX = 10
 
   return (
     <svg
       ref={ref}
-      viewBox="0 0 144 116"
+      viewBox="0 0 200 168"
       aria-hidden="true"
-      className="w-full max-w-[8rem]"
+      className="w-full"
       preserveAspectRatio="xMidYMid meet"
     >
-      <line x1="4" y1="106" x2="140" y2="106" stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
-      {bars.map((bar) => (
-        <g key={bar.label}>
-          <motion.rect
-            x={bar.x}
-            y={106 - bar.h}
-            width={28}
-            height={bar.h}
-            rx={4}
-            fill={bar.fill}
-            initial={{ scaleY: 0 }}
-            animate={reduce || inView ? { scaleY: 1 } : { scaleY: 0 }}
-            style={{ transformOrigin: `${bar.x + 14}px 106px` }}
-            transition={reduce ? { duration: 0 } : { duration: 0.7, ease: EASE, delay: 0.15 }}
-          />
-          <text
-            x={bar.x + 14}
-            y={106 - bar.h - 5}
-            textAnchor="middle"
-            fontSize={9}
-            fill="rgba(255,255,255,0.75)"
-            fontFamily="inherit"
-          >
-            {bar.value}
-          </text>
-          <text
-            x={bar.x + 14}
-            y={115}
-            textAnchor="middle"
-            fontSize={8}
-            fill="rgba(255,255,255,0.45)"
-            fontFamily="inherit"
-          >
-            {bar.label}
-          </text>
-        </g>
+      {/* Axis */}
+      <line x1={startX} y1={BASELINE} x2={190} y2={BASELINE}
+        stroke="rgba(251,248,242,0.18)" strokeWidth={1} />
+      {/* Gridlines */}
+      {[0.33, 0.66, 1.0].map((t) => (
+        <line key={t}
+          x1={startX} y1={BASELINE - 126 * t} x2={190} y2={BASELINE - 126 * t}
+          stroke="rgba(251,248,242,0.10)" strokeWidth={0.8} />
       ))}
+
+      {bars.map((bar, i) => {
+        const bx = startX + i * (BAR_W + GAP)
+        return (
+          <g key={bar.label}>
+            <motion.rect
+              x={bx}
+              y={BASELINE - bar.h}
+              width={BAR_W}
+              height={bar.h}
+              rx={5}
+              fill={bar.fill}
+              fillOpacity={bar.opacity}
+              initial={{ scaleY: 0 }}
+              animate={reduce || inView ? { scaleY: 1 } : { scaleY: 0 }}
+              style={{ transformOrigin: `${bx + BAR_W / 2}px ${BASELINE}px` }}
+              transition={reduce ? { duration: 0 } : { duration: 0.65, ease: EASE, delay: 0.1 + i * 0.1 }}
+            />
+            {/* Value label above bar */}
+            <text
+              x={bx + BAR_W / 2} y={BASELINE - bar.h - 6}
+              textAnchor="middle" fontSize={11} fontWeight={600}
+              fill="var(--color-linen)" fontFamily="inherit"
+            >
+              {bar.value}
+            </text>
+            {/* Scenario label below axis */}
+            <text
+              x={bx + BAR_W / 2} y={BASELINE + 14}
+              textAnchor="middle" fontSize={10}
+              fill="rgba(251,248,242,0.7)" fontFamily="inherit"
+            >
+              {bar.label}
+            </text>
+          </g>
+        )
+      })}
+
     </svg>
   )
 }
 
-/** AquaServe: leverage vs covenant headroom gauge */
+/** AquaServe: MOIC sensitivity mini-grid — exit multiple vs revenue growth */
 function AquaServeVisual() {
   const ref = useRef<SVGSVGElement>(null)
   const reduce = useReducedMotion()
   const inView = useInView(ref as React.RefObject<Element>, { once: true, margin: "-60px" })
 
-  const WIDTH = 144
-  const HEIGHT = 48
-  const barY = 18
-  const barH = 16
-  const totalW = 130
-  const startX = 7
-  const fillW = totalW * 0.65
+  // 3×3 sensitivity (rows = exit multiple 7x/8x/9x, cols = rev growth 2/3/4%)
+  const rows = [
+    { label: "9.0x", cells: ["2.12x", "2.56x", "3.00x"] },
+    { label: "8.0x", cells: ["1.81x", "2.21x", "2.62x"] },
+    { label: "7.0x", cells: ["1.50x", "1.87x", "2.23x"] },
+  ]
+  const colLabels = ["2%", "3%", "4%"]
+  const CELL_W = 50, CELL_H = 32
+  const LEFT = 30, TOP = 26
+
+  // Base cell = row index 1, col index 1 (8.0x × 3%)
+  const baseRow = 1, baseCol = 1
 
   return (
     <svg
       ref={ref}
-      viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+      viewBox="0 0 200 152"
       aria-hidden="true"
-      className="w-full max-w-[8rem]"
+      className="w-full"
       preserveAspectRatio="xMidYMid meet"
     >
-      <rect x={startX} y={barY} width={totalW} height={barH} rx={5} fill="rgba(255,255,255,0.12)" />
-      <motion.rect
-        x={startX}
-        y={barY}
-        width={fillW}
-        height={barH}
-        rx={5}
-        fill="rgba(255,255,255,0.45)"
-        initial={{ scaleX: 0 }}
-        animate={reduce || inView ? { scaleX: 1 } : { scaleX: 0 }}
-        style={{ transformOrigin: `${startX}px ${barY + barH / 2}px` }}
-        transition={reduce ? { duration: 0 } : { duration: 0.8, ease: EASE, delay: 0.1 }}
-      />
-      <line
-        x1={startX + totalW * 0.85}
-        y1={barY - 4}
-        x2={startX + totalW * 0.85}
-        y2={barY + barH + 4}
-        stroke="rgba(217,164,65,0.8)"
-        strokeWidth={1.5}
-        strokeDasharray="3 2"
-      />
-      <text x={startX} y={barY + barH + 13} fontSize={8} fill="rgba(255,255,255,0.45)" fontFamily="inherit">
-        Debt
+      {/* Column headers */}
+      {colLabels.map((lbl, ci) => (
+        <text key={lbl}
+          x={LEFT + ci * CELL_W + CELL_W / 2} y={16}
+          textAnchor="middle" fontSize={10}
+          fill="rgba(251,248,242,0.65)" fontFamily="inherit"
+        >
+          {lbl}
+        </text>
+      ))}
+      {/* Rev growth label */}
+      <text x={LEFT + (3 * CELL_W) / 2} y={7}
+        textAnchor="middle" fontSize={8} letterSpacing="0.06em"
+        fill="rgba(251,248,242,0.4)" fontFamily="inherit">
+        REV GROWTH
       </text>
+
+      {rows.map((row, ri) => (
+        <g key={row.label}>
+          {/* Row label */}
+          <text
+            x={LEFT - 6} y={TOP + ri * CELL_H + CELL_H / 2 + 4}
+            textAnchor="end" fontSize={10}
+            fill="rgba(251,248,242,0.65)" fontFamily="inherit"
+          >
+            {row.label}
+          </text>
+          {row.cells.map((val, ci) => {
+            const isBase = ri === baseRow && ci === baseCol
+            return (
+              <motion.g key={ci}
+                initial={{ opacity: 0 }}
+                animate={reduce || inView ? { opacity: 1 } : { opacity: 0 }}
+                transition={reduce ? { duration: 0 } : { duration: 0.5, ease: EASE, delay: 0.08 + (ri * 3 + ci) * 0.04 }}
+              >
+                <rect
+                  x={LEFT + ci * CELL_W + 1}
+                  y={TOP + ri * CELL_H + 1}
+                  width={CELL_W - 2}
+                  height={CELL_H - 2}
+                  rx={4}
+                  fill={isBase ? "var(--color-golden-hour)" : "var(--color-sky-mist)"}
+                  fillOpacity={isBase ? 0.88 : 0.22}
+                  stroke={isBase ? "var(--color-golden-hour)" : "rgba(191,224,232,0.35)"}
+                  strokeWidth={isBase ? 1.5 : 0.8}
+                />
+                <text
+                  x={LEFT + ci * CELL_W + CELL_W / 2}
+                  y={TOP + ri * CELL_H + CELL_H / 2 + 4}
+                  textAnchor="middle"
+                  fontSize={isBase ? 12 : 10}
+                  fontWeight={isBase ? 700 : 400}
+                  fill={isBase ? "var(--color-deep-sea)" : "var(--color-linen)"}
+                  fontFamily="inherit"
+                >
+                  {val}
+                </text>
+              </motion.g>
+            )
+          })}
+        </g>
+      ))}
+
+      {/* Exit multiple label */}
       <text
-        x={startX + totalW * 0.85}
-        y={barY - 6}
-        textAnchor="middle"
-        fontSize={8}
-        fill="rgba(217,164,65,0.8)"
-        fontFamily="inherit"
+        x={6} y={TOP + (3 * CELL_H) / 2 + 4}
+        textAnchor="middle" fontSize={8} letterSpacing="0.06em"
+        fill="rgba(251,248,242,0.4)" fontFamily="inherit"
+        transform={`rotate(-90, 6, ${TOP + (3 * CELL_H) / 2 + 4})`}
       >
-        Covenant
+        EXIT EV/EBITDA
+      </text>
+
+      {/* MOIC label */}
+      <text x={100} y={148} textAnchor="middle" fontSize={9} letterSpacing="0.08em"
+        fill="rgba(251,248,242,0.40)" fontFamily="inherit">
+        MOIC SENSITIVITY
       </text>
     </svg>
   )
 }
 
-/** KPI dashboards: three mini sparklines */
+/** KPI dashboards: leakage area sparkline + stat band */
 function DashboardVisual() {
   const ref = useRef<SVGSVGElement>(null)
   const reduce = useReducedMotion()
   const inView = useInView(ref as React.RefObject<Element>, { once: true, margin: "-60px" })
 
-  const sparklines = [
-    { pts: "2,34 18,28 34,30 50,20 66,17 82,10", col: "rgba(255,255,255,0.6)" },
-    { pts: "2,38 18,32 34,22 50,26 66,15 82,12", col: "rgba(217,164,65,0.65)" },
-    { pts: "2,40 18,30 34,36 50,22 66,20 82,8",  col: "rgba(255,255,255,0.35)" },
+  // Leakage trend: FY2020=157 → FY2024=133, target=120 (Ml/d)
+  // Map to SVG coords: y = 130 - (val-120)/50 * 110 (lower = higher on screen)
+  const leakageY = (v: number) => 125 - ((v - 115) / 55) * 100
+  const pts = [
+    { x: 14,  v: 157 },
+    { x: 50,  v: 150 },
+    { x: 86,  v: 143 },
+    { x: 122, v: 138 },
+    { x: 158, v: 133 },
   ]
+
+  // Area fill polygon
+  const lineStr = pts.map((p) => `${p.x},${leakageY(p.v)}`).join(" ")
+  const areaStr = `14,${leakageY(115)} ${lineStr} 158,${leakageY(115)}`
+
+  // Target line y
+  const targetY = leakageY(120)
 
   return (
     <svg
       ref={ref}
-      viewBox="0 0 88 52"
+      viewBox="0 0 200 152"
       aria-hidden="true"
-      className="w-full max-w-[8rem]"
+      className="w-full"
       preserveAspectRatio="xMidYMid meet"
     >
       <motion.g
         initial={{ opacity: 0 }}
         animate={reduce || inView ? { opacity: 1 } : { opacity: 0 }}
-        transition={reduce ? { duration: 0 } : { duration: 0.6, ease: EASE, delay: 0.1 }}
+        transition={reduce ? { duration: 0 } : { duration: 0.7, ease: EASE, delay: 0.1 }}
       >
-        {sparklines.map((s, i) => (
-          <polyline
-            key={i}
-            points={s.pts}
-            fill="none"
-            stroke={s.col}
-            strokeWidth={2.5}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+        {/* Axis */}
+        <line x1="14" y1={leakageY(115)} x2="162" y2={leakageY(115)}
+          stroke="rgba(251,248,242,0.15)" strokeWidth={1} />
+        {/* Gridlines */}
+        {[130, 145, 160].map((v) => (
+          <line key={v} x1="14" y1={leakageY(v)} x2="162" y2={leakageY(v)}
+            stroke="rgba(251,248,242,0.08)" strokeWidth={0.8} />
+        ))}
+
+        {/* Area fill under leakage line */}
+        <polygon
+          points={areaStr}
+          fill="var(--color-sky-mist)"
+          fillOpacity={0.22}
+        />
+
+        {/* Leakage line */}
+        <polyline
+          points={lineStr}
+          fill="none"
+          stroke="var(--color-sky-mist)"
+          strokeWidth={2.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeOpacity={0.95}
+        />
+
+        {/* Data points */}
+        {pts.map((p) => (
+          <circle key={p.x} cx={p.x} cy={leakageY(p.v)} r={3.5}
+            fill="var(--color-sky-mist)" fillOpacity={0.9} />
+        ))}
+
+        {/* End value label */}
+        <text x={163} y={leakageY(133) + 4} fontSize={10} fontWeight={600}
+          fill="var(--color-linen)" fontFamily="inherit">
+          133
+        </text>
+
+        {/* PR24 target line */}
+        <line x1="14" y1={targetY} x2="162" y2={targetY}
+          stroke="var(--color-golden-hour)"
+          strokeWidth={2} strokeDasharray="5 3" strokeOpacity={0.9} />
+        <text x={163} y={targetY + 4} fontSize={10} fontWeight={600}
+          fill="var(--color-golden-hour)" fontFamily="inherit">
+          120
+        </text>
+        <text x={88} y={targetY - 6} textAnchor="middle" fontSize={8}
+          fill="var(--color-golden-hour)" fontFamily="inherit" letterSpacing="0.05em">
+          PR24 TARGET
+        </text>
+
+        {/* Year labels */}
+        {pts.map((p, i) => (
+          <text key={i} x={p.x} y={leakageY(115) + 13} textAnchor="middle" fontSize={8.5}
+            fill="rgba(251,248,242,0.6)" fontFamily="inherit">
+            {`FY${20 + i}`}
+          </text>
         ))}
       </motion.g>
-      <line x1="2" y1="46" x2="86" y2="46" stroke="rgba(255,255,255,0.12)" strokeWidth={0.8} />
+
+      {/* Chart label */}
+      <text x={88} y={148} textAnchor="middle" fontSize={9} letterSpacing="0.08em"
+        fill="rgba(251,248,242,0.40)" fontFamily="inherit">
+        LEAKAGE Ml/d
+      </text>
     </svg>
   )
 }
 
 const CASE_STUDIES: CaseStudy[] = [
   {
+    slug: "voltagrid",
     label: "3-STATEMENT LBO · IC MEMO",
     title: "VoltaGrid Energy",
-    subtitle: "Leveraged buyout model and investment committee memo",
-    context: "Five-year, three-statement LBO modelled for a £45 m EV energy deal with a five-part IC memo.",
+    subtitle: "PE / LBO · battery storage (BESS)",
+    context: "Five-year, three-statement LBO for a UK grid-scale BESS platform. Norland Capital acquires a 60% stake at £45.0m EV with a full three-case IC memo.",
     metrics: [
-      { value: "£45m", label: "Enterprise value" },
-      { value: "2.4×", label: "MOIC (modelled)" },
-      { value: "22%", label: "IRR (modelled)" },
+      { value: "2.2x", label: "MOIC (base)" },
+      { value: "~20%", label: "IRR (base)" },
+      { value: "£45.0m", label: "EV" },
     ],
     gradient: "from-[#14323b] to-[#1e5c6b]",
     Visual: VoltaGridVisual,
   },
   {
+    slug: "aquaserve",
     label: "LBO MODEL · STRESS TESTING",
-    title: "AquaServe UK",
-    subtitle: "Entry-to-exit buyout model with downside testing",
-    context: "Modelled a £43.3 m water-sector buyout at 8.0× EBITDA, stress-testing leverage and covenant headroom.",
+    title: "AquaServe Water Services",
+    subtitle: "PE / LBO · UK water services",
+    context: "Modelled a £43.3m water-services buyout at 8.0x EBITDA, stress-testing leverage, covenant headroom and exit re-rating scenarios.",
     metrics: [
-      { value: "£43.3m", label: "Deal size" },
-      { value: "8.0×", label: "EBITDA entry" },
-      { value: "2.1×", label: "MOIC (modelled)" },
+      { value: "2.21x", label: "MOIC" },
+      { value: "17.2%", label: "IRR (base)" },
+      { value: "£43.3m", label: "EV" },
     ],
     gradient: "from-[#14323b] to-[#2b7a8c]",
     Visual: AquaServeVisual,
   },
   {
+    slug: "water",
     label: "ANALYTICS · DASHBOARDS",
     title: "Multi-source KPI Dashboards",
-    subtitle: "Multi-source KPI analytics with Python EDA",
-    context: "Three Tableau dashboards across three business areas plus two Python pandas analyses end to end.",
+    subtitle: "Data analytics · Ofwat PR24",
+    context: "Data-analytics project on UK water-utility performance FY2020–FY2024. Three interactive dashboards and two Python EDA scripts across network, customer and financial KPIs.",
     metrics: [
       { value: "3", label: "Dashboards" },
-      { value: "2", label: "Python analyses" },
-      { value: "3", label: "Business areas" },
+      { value: "2", label: "Python EDA" },
+      { value: "−24", label: "Ml/d leakage" },
     ],
     gradient: "from-[#1e5c6b] to-[#14323b]",
     Visual: DashboardVisual,
@@ -566,40 +697,21 @@ function StaticCardInner({ cs }: { cs: CaseStudy }) {
 function CardContent({ cs }: { cs: CaseStudy }) {
   return (
     <>
-      {/* SVG visual — subtly layered in the upper portion */}
+      {/* SVG visual — clearly visible, layered across the upper card area */}
       {cs.Visual ? (
         <div
           aria-hidden="true"
-          className="absolute right-6 top-6 opacity-40"
+          className="pointer-events-none absolute inset-x-5 top-6 z-[2]"
         >
           <cs.Visual />
         </div>
       ) : null}
 
-      {/* Dark gradient scrim for text contrast */}
+      {/* Gradient scrim: light over the visual, dark at the base for text contrast */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/10 to-deep-sea/70"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-deep-sea/10 via-transparent to-deep-sea/85"
       />
-
-      {/* Top-right circular ArrowUpRight link */}
-      <div className="relative z-10 flex justify-end p-4">
-        <a
-          href="#"
-          aria-label={`Open ${cs.title} case study (coming soon)`}
-          aria-disabled="true"
-          onClick={(e) => e.preventDefault()}
-          className={cn(
-            "flex h-9 w-9 items-center justify-center rounded-full",
-            "bg-white/15 backdrop-blur-sm ring-1 ring-white/25",
-            "text-white/90 transition-colors duration-200 hover:bg-white/25",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-1",
-          )}
-        >
-          <ArrowUpRight aria-hidden="true" className="h-4 w-4" />
-          <span className="sr-only">Open {cs.title} (coming soon)</span>
-        </a>
-      </div>
 
       {/* Bottom overlay: label + title + subtitle + context + chips + button */}
       <div className="relative z-10 mt-auto flex flex-col gap-3 p-5 pt-0">
@@ -646,10 +758,8 @@ function CardContent({ cs }: { cs: CaseStudy }) {
 
         {/* Glass "Read case study" button */}
         <a
-          href="#"
-          aria-label={`Read ${cs.title} case study (coming soon)`}
-          aria-disabled="true"
-          onClick={(e) => e.preventDefault()}
+          href={`#/project/${cs.slug}`}
+          aria-label={`Read the ${cs.title} case study`}
           className={cn(
             "mt-1 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5",
             "bg-white/10 backdrop-blur-sm ring-1 ring-white/20",
@@ -659,7 +769,7 @@ function CardContent({ cs }: { cs: CaseStudy }) {
           )}
         >
           Read case study
-          <span className="sr-only">(coming soon)</span>
+          <ArrowRight aria-hidden="true" className="h-4 w-4" />
         </a>
       </div>
     </>

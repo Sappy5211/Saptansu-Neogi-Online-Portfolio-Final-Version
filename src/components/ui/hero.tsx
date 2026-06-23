@@ -100,9 +100,9 @@ export function Hero() {
       setPhase("content")
       return
     }
-    // "Hello" for 1.5 s → "Let's go on a journey together" for 2 s → reveal
-    const t1 = window.setTimeout(() => setPhase("journey"), 1500)
-    const t2 = window.setTimeout(() => setPhase("content"), 5700)
+    // "Hey" assembles (~1.4 s) then holds ~2 s once formed → tagline → reveal.
+    const t1 = window.setTimeout(() => setPhase("journey"), 3400)
+    const t2 = window.setTimeout(() => setPhase("content"), 7600)
     return () => {
       window.clearTimeout(t1)
       window.clearTimeout(t2)
@@ -111,7 +111,7 @@ export function Hero() {
 
   const showContent = phase === "content"
   const particleText =
-    phase === "hello" ? "Hello" : "Let's go on a journey together"
+    phase === "hello" ? "Hey" : "Let's go on a journey together"
 
   const scrollToProjects = () => {
     const el = document.getElementById("projects")
