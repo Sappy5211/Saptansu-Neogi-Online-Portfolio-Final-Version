@@ -164,6 +164,54 @@ const ROLES: Role[] = [
     ],
   },
   {
+    id: "ai-automation",
+    Icon: Workflow,
+    company: "Start-up AI Automation & Workflow Project",
+    title: "Strategy and Operations Support (Volunteer)",
+    dates: "Jun 2026 – Present",
+    chip: "12 workflows mapped",
+    badge: "Volunteer",
+    scope: (
+      <>
+        Volunteer strategy and operations support at an early-stage start-up,
+        mapping manual workflows for AI-assisted automation, structuring
+        requirements and shaping responsible AI governance.
+      </>
+    ),
+    bullets: [
+      <>
+        Mapped and documented <Fig>12</Fig> manual workflows across <Fig>4</Fig>{" "}
+        operational areas, identifying high-priority tasks for AI-assisted
+        automation, reporting improvement and structured process redesign.
+      </>,
+      <>
+        Gathered and structured requirements from <Fig>8</Fig> stakeholders across{" "}
+        <Fig>10</Fig> use cases, shaping detailed workflow specifications through
+        review, iteration and post-implementation validation.
+      </>,
+      <>
+        Supported <Fig>6</Fig> strategy sessions on commercial priorities,
+        synthesising discussion outputs into structured documentation covering
+        automation roadmap, tool selection and responsible AI governance.
+      </>,
+    ],
+    stats: [
+      { type: "squiggle", value: "12", label: "Workflows mapped",  accent: "golden" },
+      { type: "badge",    value: "4",  label: "Operational areas", icon: Workflow },
+      { type: "badge",    value: "8",  label: "Stakeholders",      icon: ClipboardCheck },
+      { type: "badge",    value: "10", label: "Use cases",         icon: FileText },
+    ],
+    skills: [
+      "Workflow Mapping",
+      "Requirements Gathering",
+      "Process Redesign",
+      "AI Automation",
+      "Responsible AI Governance",
+      "Stakeholder Management",
+      "Process Documentation",
+    ],
+  },
+  {
     id: "yaf",
     Icon: Megaphone,
     company: "Young Asians in Finance",
